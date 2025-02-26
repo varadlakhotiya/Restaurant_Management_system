@@ -1,0 +1,1440 @@
+/* General Styles */
+#menu {
+    padding: 2rem;
+    background-color: #f9f9f9;
+    text-align: center;
+}
+
+#menu h2 {
+    font-size: 2.5rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+#menu p {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+/* Categories Filter */
+.filters {
+    margin-bottom: 40px;
+}
+
+.filters h3 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.filters ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+
+.filters li {
+    display: inline-block;
+}
+
+.filter-link {
+    font-size: 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.filter-link:hover {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+.filter-link.active {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+.search-bar {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 20px;
+    font-size: 1rem;
+}
+/* Add this CSS to your stylesheet */
+.sticky {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.8); /* More transparent background */
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Softer and more modern shadow */
+    padding: 15px 0;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(15px); /* Stronger blur effect for glassmorphism */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border for depth */
+}
+
+.container {
+    padding-top: 100px; /* Adjust this value based on the height of your filters */
+}
+
+.filters {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Increase spacing between elements */
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.search-bar {
+    padding: 12px 16px;
+    border: 1px solid rgba(0, 0, 0, 0.1); /* Lighter border */
+    border-radius: 12px; /* More rounded corners */
+    font-size: 16px;
+    width: 100%;
+    max-width: 400px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent background */
+}
+
+.search-bar:focus {
+    border-color: #007bff; /* Highlight the search bar when focused */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1); /* Add a focus ring */
+    outline: none;
+}
+
+.category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.category-filters .filter-link {
+    padding: 10px 20px;
+    background-color: rgba(245, 245, 245, 0.9); /* Slightly transparent background */
+    border-radius: 25px; /* Fully rounded corners for filter links */
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    font-weight: 500; /* Slightly bolder text */
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle border for depth */
+}
+
+.category-filters .filter-link.active,
+.category-filters .filter-link:hover {
+    background-color: #ed0b0b;
+    color: white;
+    transform: translateY(-2px); /* Add a slight lift effect on hover */
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2); /* Add a shadow on hover */
+    border-color: transparent; /* Remove border on hover */
+}
+
+/* Add a subtle animation when the filters become sticky */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.sticky {
+    animation: slideDown 0.3s ease-out;
+}
+
+/* Menu Categories Grid */
+.menu-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 2rem;
+    background: #f9f9f9;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.category {
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.category:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.category h3 {
+    font-size: 1.8rem;
+    color: #333;
+    margin-bottom: 1.5rem;
+    border-bottom: 3px solid #ff6f61;
+    padding-bottom: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Subcategory Styles */
+.subcategory {
+    margin-bottom: 2rem;
+    flex: 1;
+}
+
+.subcategory h4 {
+    font-size: 1.5rem;
+    color: #444;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.subcategory ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.subcategory li {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    background: #f5f5f5;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.subcategory li:hover {
+    background: #ff6f61;
+    color: #fff;
+    transform: scale(1.02);
+}
+
+.subcategory li img {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    margin-right: 1.5rem;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.subcategory li h4 {
+    font-size: 1.3rem;
+    margin: 0;
+    color: inherit;
+    font-weight: 600;
+}
+
+.subcategory li p {
+    font-size: 0.95rem;
+    margin: 0.5rem 0;
+    color: inherit;
+    line-height: 1.4;
+}
+
+.subcategory li span {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-left: auto;
+    color: inherit;
+}
+
+/* Add to Cart Button */
+.add-to-cart {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 30px;
+    background: #ff6f61;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.add-to-cart:hover {
+    background: #e65a50;
+    transform: translateY(-2px);
+}
+
+.add-to-cart:active {
+    transform: translateY(0);
+}
+
+/* Favorite Button */
+.favorite-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.3s ease, color 0.3s ease;
+    color: #ff6f61;
+}
+
+.favorite-button:hover {
+    transform: scale(1.2);
+    color: #e65a50;
+}
+
+.favorite-button.active {
+    color: #e65a50;
+}
+
+/* Cart and Favorites Styles */
+#cart, #favorites {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.cart-item, .favorite-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    transition: background 0.3s ease;
+}
+
+.cart-item:hover, .favorite-item:hover {
+    background: #f9f9f9;
+}
+
+.cart-item:last-child, .favorite-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item span, .favorite-item span {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #333;
+}
+
+/* Welcome Message Styling */
+.welcome-message {
+    text-align: center;
+    font-size: 1.3rem;
+    color: #666;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Filter Link Styling */
+.filter-link {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    margin: 0.5rem;
+    background: #ff6f61;
+    color: #fff;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.filter-link:hover {
+    background: #e65a50;
+    transform: translateY(-2px);
+}
+
+.filter-link.active {
+    background: #e65a50;
+    transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .menu-categories {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .subcategory li {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .subcategory li img {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+
+    .subcategory li span {
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+
+    .category h3 {
+        font-size: 1.6rem;
+    }
+
+    .subcategory h4 {
+        font-size: 1.4rem;
+    }
+
+    .subcategory li h4 {
+        font-size: 1.2rem;
+    }
+
+    .subcategory li p {
+        font-size: 0.9rem;
+    }
+
+    .subcategory li span {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .category {
+        padding: 1rem;
+    }
+
+    .category h3 {
+        font-size: 1.5rem;
+    }
+
+    .subcategory h4 {
+        font-size: 1.3rem;
+    }
+
+    .subcategory li h4 {
+        font-size: 1.1rem;
+    }
+
+    .subcategory li p {
+        font-size: 0.85rem;
+    }
+
+    .subcategory li span {
+        font-size: 1rem;
+    }
+
+    .add-to-cart {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .welcome-message {
+        font-size: 1.1rem;
+        padding: 1rem;
+    }
+
+    .filter-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Shop Section */
+#shop {
+    padding: 60px 20px;
+    background-color: var(--bg-color);
+    text-align: center;
+    min-height: 100vh;
+}
+
+#shop h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+#shop p {
+    font-size: 1.1rem;
+    color: var(--secondary-text-color);
+    margin-bottom: 40px;
+}
+
+/* Style for the welcome message */
+.welcome-message {
+    background-color: #f8f9fa;
+    padding: 20px;
+    text-align: center;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #333;
+    
+    /* Initial fade-in effect */
+    animation: fadeIn 2s ease-out, pulse 2s ease-in-out 1s infinite; 
+  }
+  
+  /* Fade-in animation */
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Pulse effect (slight scale) */
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  /* When the message is hidden (fade-out) */
+  .welcome-message.fade-out {
+    animation: fadeOut 1s forwards;
+  }
+  
+  /* Fade-out animation */
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  
+  
+
+/* Categories Filter */
+.filters {
+    margin-bottom: 40px;
+}
+
+.filters h3 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.filters ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+
+.filters li {
+    display: inline-block;
+}
+
+.filter-link {
+    font-size: 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.filter-link:hover {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+/* Product Grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    background-color: var(--secondary-bg-color);
+    border-radius: 10px;
+}
+
+.product-item {
+    background-color: var(--bg-color);
+    border: 1px solid var(--secondary-text-color);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.product-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.product-item h3 {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.product-description {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.product-price {
+    font-size: 1.1rem;
+    color: var(--accent-color);
+    margin-bottom: 15px;
+}
+
+.add-to-cart {
+    font-size: 1rem;
+    color: var(--bg-color);
+    background-color: var(--primary-color);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.add-to-cart:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+/* Cart Section */
+#cart {
+    display: none;
+    border: 1px solid #ddd;
+    padding: 20px;
+    margin: 20px auto;
+    width: 50%;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#cart h2 {
+    text-align: center;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.cart-item h4 {
+    margin: 0;
+}
+
+.cart-item p {
+    margin: 0 10px 0 0;
+}
+
+.cart-item button {
+    margin: 0 5px;
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.cart-item button:hover {
+    background-color: #0056b3;
+}
+
+#cart-summary {
+    text-align: right;
+    margin-top: 10px;
+}
+
+#checkout-btn, #apply-promo-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#checkout-btn:hover, #apply-promo-btn:hover {
+    background-color: #d32f2f;
+}
+
+#promo-code {
+    width: calc(100% - 20px);
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Shop Section -->
+    <section id="shop">
+    <div class="container">
+      <h1>Our Premium Vegetarian Products</h1>
+      <p>Welcome to our store, where we offer a curated selection of authentic, high-quality vegetarian ingredients and beverages. Each product is carefully crafted to bring the rich flavors of India to your home. Explore our range of spices, beverages, marinades, and more! Please select a category to explore products.</p>
+
+    <!-- Welcome Message (Visible initially) -->
+    <div id="welcome-message" class="welcome-message">
+        <p>Use the filters to explore our premium vegetarian products.</p>
+    </div>
+
+
+      <!-- Categories Filter -->
+      <div class="filters">
+        <h3>Shop by Category</h3>
+        <ul>
+          <li><a href="#" class="filter-link" data-category="spices">Spices</a></li>
+          <li><a href="#" class="filter-link" data-category="beverages">Beverages</a></li>
+          <li><a href="#" class="filter-link" data-category="marinades">Marinades</a></li>
+          <li><a href="#" class="filter-link" data-category="snacks">Snacks</a></li>
+          <li><a href="#" class="filter-link" data-category="desserts">Desserts</a></li>
+          <li><a href="#" class="filter-link" data-category="herbs">Herbs & Seasonings</a></li>
+        </ul>
+      </div>
+  
+      <!-- Product Grid (Initially Hidden) -->
+      <div class="product-grid" style="display: none;">
+        <!-- Example Product for Spices (hidden initially) -->
+        <div class="product-item spices" style="display: none;">
+          <img src="images/spice1.jpeg" alt="Spice Mix" class="product-image">
+          <h3>Authentic Spice Mix</h3>
+          <p class="product-description">A handpicked blend of aromatic spices, perfect for adding depth and richness to your vegetarian curries, stews, and soups.</p>
+          <p class="product-price">₹200</p>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+  
+        <!-- Product 2 - Beverages -->
+        <div class="product-item beverages">
+          <img src="images/beverage1.jpeg" alt="Mango Lassi" class="product-image">
+          <h3>Mango Lassi</h3>
+          <p class="product-description">A refreshing, creamy yogurt drink infused with tropical mangoes. The perfect companion to any meal, offering a burst of sweetness and tang.</p>
+          <p class="product-price">₹150</p>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+  
+        <!-- Product 3 - Marinades -->
+        <div class="product-item marinades">
+          <img src="images/marinade1.jpeg" alt="Tandoori Marinade" class="product-image">
+          <h3>Tandoori Marinade</h3>
+          <p class="product-description">A rich and flavorful marinade made from traditional spices, ideal for grilling vegetables or tofu for a smoky, tandoori-style taste.</p>
+          <p class="product-price">₹250</p>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+  
+        <!-- Product 4 - Snacks -->
+        <div class="product-item snacks">
+          <img src="images/snack1.jpeg" alt="Vegetarian Samosas" class="product-image">
+          <h3>Vegetarian Samosas</h3>
+          <p class="product-description">Golden, crispy pastry filled with a savory mix of spiced potatoes, peas, and carrots. A perfect snack for any occasion.</p>
+          <p class="product-price">₹100</p>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+  
+        <!-- Product 5 - Desserts -->
+        <div class="product-item desserts">
+          <img src="images/dessert1.jpeg" alt="Gulab Jamun" class="product-image">
+          <h3>Gulab Jamun</h3>
+          <p class="product-description">Soft, syrup-soaked dough balls made from milk solids, offering a perfect blend of sweetness and richness. A traditional Indian dessert loved by all.</p>
+          <p class="product-price">₹180</p>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+  
+        <!-- Product 6 - Herbs -->
+        <div class="product-item herbs">
+          <img src="images/herb1.jpeg" alt="Basil Leaves" class="product-image">
+          <h3>Fresh Basil Leaves</h3>
+          <p class="product-description">Handpicked fresh basil leaves, ideal for garnishing your favorite dishes, soups, and salads with a burst of aromatic flavor.</p>
+          <p class="product-price">₹120</p>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+  
+        <!-- Additional Product 7 - Beverages -->
+<div class="product-item beverages">
+    <img src="images/herbaltea1.jpeg" alt="Organic Green Tea" class="product-image">
+    <h3>Organic Green Tea</h3>
+    <p class="product-description">A refreshing and rejuvenating organic green tea, packed with antioxidants to promote health and well-being.</p>
+    <p class="product-price">₹150</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 8 - Ready-to-Cook Kits -->
+  <div class="product-item marinades">
+    <img src="images/readycook1.jpeg" alt="Paneer Butter Masala Kit" class="product-image">
+    <h3>Paneer Butter Masala Kit</h3>
+    <p class="product-description">A ready-to-cook meal kit with pre-measured ingredients to make delicious, creamy paneer butter masala.</p>
+    <p class="product-price">₹350</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 9 - Snacks -->
+  <div class="product-item snacks">
+    <img src="images/pickle1.jpeg" alt="Mango Pickle" class="product-image">
+    <h3>Mango Pickle</h3>
+    <p class="product-description">A tangy and spicy mango pickle made with traditional Indian spices, perfect for adding a burst of flavor to any meal.</p>
+    <p class="product-price">₹120</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 10 - Snacks -->
+  <div class="product-item snacks">
+    <img src="images/snack2.jpeg" alt="Khakra" class="product-image">
+    <h3>Khakra (Crispy Indian Crackers)</h3>
+    <p class="product-description">A healthy and crunchy snack made from whole wheat, seasoned with spices. Perfect for a light snack or accompaniment to tea.</p>
+    <p class="product-price">₹120</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 11 - Desserts -->
+  <div class="product-item desserts">
+    <img src="images/dessert2.jpeg" alt="Besan Ladoo" class="product-image">
+    <h3>Besan Ladoo</h3>
+    <p class="product-description">Soft and sweet laddoos made from chickpea flour, ghee, and cardamom—an indulgent treat for any occasion.</p>
+    <p class="product-price">₹180</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 12 - Spices -->
+  <div class="product-item spices">
+    <img src="images/spice2.jpeg" alt="Cumin Seeds" class="product-image">
+    <h3>Cumin Seeds</h3>
+    <p class="product-description">Pure, aromatic cumin seeds that add a rich, earthy flavor to your dishes. Essential for curries and spice blends.</p>
+    <p class="product-price">₹120</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 13 - Marinades -->
+  <div class="product-item marinades">
+    <img src="images/marinade3.jpeg" alt="Garlic Ginger Marinade" class="product-image">
+    <h3>Garlic Ginger Marinade</h3>
+    <p class="product-description">A zesty garlic and ginger marinade, perfect for flavoring vegetables, tofu, and plant-based protein.</p>
+    <p class="product-price">₹180</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 14 - Herbs -->
+  <div class="product-item herbs">
+    <img src="images/herb2.jpeg" alt="Mint Leaves" class="product-image">
+    <h3>Fresh Mint Leaves</h3>
+    <p class="product-description">Fresh and fragrant mint leaves, ideal for garnishing drinks, salads, and desserts, or for making refreshing mint tea.</p>
+    <p class="product-price">₹100</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+
+  
+  <!-- Additional Product 15 - Spices -->
+<div class="product-item spices">
+    <img src="images/spice3.jpeg" alt="Turmeric Powder" class="product-image">
+    <h3>Turmeric Powder</h3>
+    <p class="product-description">Pure, high-quality turmeric powder, known for its earthy flavor and health benefits. Ideal for curries, soups, and rice dishes.</p>
+    <p class="product-price">₹180</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 16 - Beverages -->
+  <div class="product-item beverages">
+    <img src="images/beverage3.jpeg" alt="Cold Brew Coffee" class="product-image">
+    <h3>Cold Brew Coffee</h3>
+    <p class="product-description">Smooth and rich cold brew coffee, made with the finest beans for an energizing and refreshing drink.</p>
+    <p class="product-price">₹220</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 17 - Snacks -->
+  <div class="product-item snacks">
+    <img src="images/snack4.jpeg" alt="Baked Vegetable Chips" class="product-image">
+    <h3>Baked Vegetable Chips</h3>
+    <p class="product-description">Crispy and healthy baked vegetable chips, made from fresh vegetables and seasoned with aromatic spices. A perfect guilt-free snack.</p>
+    <p class="product-price">₹160</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 18 - Desserts -->
+  <div class="product-item desserts">
+    <img src="images/dessert3.jpeg" alt="Rasgulla" class="product-image">
+    <h3>Rasgulla</h3>
+    <p class="product-description">Soft, spongy balls of sweetened cottage cheese soaked in sugar syrup. A popular Bengali dessert that is loved by many.</p>
+    <p class="product-price">₹150</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 19 - Herbs & Seasonings -->
+  <div class="product-item herbs">
+    <img src="images/herb3.jpeg" alt="Coriander Powder" class="product-image">
+    <h3>Coriander Powder</h3>
+    <p class="product-description">Ground coriander powder, perfect for seasoning vegetarian curries, soups, and sauces. Adds a mild, citrusy flavor.</p>
+    <p class="product-price">₹130</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 20 - Marinades -->
+  <div class="product-item marinades">
+    <img src="images/marinade4.jpeg" alt="Lemon Herb Marinade" class="product-image">
+    <h3>Lemon Herb Marinade</h3>
+    <p class="product-description">A refreshing lemon and herb marinade, ideal for grilling vegetables, tofu, and plant-based proteins. Perfect for a tangy, light flavor.</p>
+    <p class="product-price">₹170</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 21 - Beverages -->
+  <div class="product-item beverages">
+    <img src="images/beverage4.jpeg" alt="Chai Tea" class="product-image">
+    <h3>Chai Tea</h3>
+    <p class="product-description">A classic Indian spiced tea, brewed with a blend of aromatic spices such as cardamom, cinnamon, and ginger. Perfect for any time of day.</p>
+    <p class="product-price">₹180</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 23 - Desserts -->
+  <div class="product-item desserts">
+    <img src="images/dessert4.jpeg" alt="Jalebi" class="product-image">
+    <h3>Jalebi</h3>
+    <p class="product-description">A sweet and crispy dessert made by deep-frying flour batter and soaking it in saffron-infused sugar syrup. A popular Indian treat.</p>
+    <p class="product-price">₹160</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  <!-- Additional Product 24 - Spices -->
+  <div class="product-item spices">
+    <img src="images/spice4.jpeg" alt="Garam Masala" class="product-image">
+    <h3>Garam Masala</h3>
+    <p class="product-description">A blend of aromatic spices, perfect for adding warmth and depth to your vegetarian dishes. A must-have for any Indian kitchen.</p>
+    <p class="product-price">₹200</p>
+    <button class="add-to-cart">Add to Cart</button>
+  </div>
+  
+  
+      </div>
+    </div>
+    </section>
+    <!-- JavaScript to Filter Products -->
+    <script>
+    // JavaScript to handle category selection, dynamic product display, and hiding the welcome message
+document.addEventListener("DOMContentLoaded", function () {
+    const filterLinks = document.querySelectorAll('.filter-link');
+    const productGrid = document.querySelector('.product-grid');
+    const allProductItems = document.querySelectorAll('.product-item');
+    const welcomeMessage = document.getElementById('welcome-message');
+  
+    // Initially, hide all products and the grid
+    productGrid.style.display = 'none';
+    allProductItems.forEach(item => item.style.display = 'none');
+  
+    // Function to show products based on category
+    function showProducts(category) {
+      productGrid.style.display = 'grid'; // Make sure the grid is displayed when products are shown
+      allProductItems.forEach(item => {
+        if (item.classList.contains(category)) {
+          item.style.display = 'block'; // Show products matching category
+        } else {
+          item.style.display = 'none'; // Hide products not matching category
+        }
+      });
+    }
+  
+    // Add event listener to filter links
+    filterLinks.forEach(link => {
+      link.addEventListener('click', function (e) {
+        e.preventDefault(); // Prevent default link behavior
+        const category = link.getAttribute('data-category'); // Get category from clicked link
+        showProducts(category); // Show products for selected category
+  
+        // Hide the welcome message when user interacts with the shop
+        welcomeMessage.style.display = 'none';
+      });
+    });
+  });
+    </script>
+    <!-- Cart Section -->
+    <section id="cart">
+    <h2>Your Cart</h2>
+    <div id="cart-items">
+        <!-- Cart items will appear here -->
+    </div>
+    <div id="cart-summary">
+        <p>Subtotal: ₹<span id="subtotal">0.00</span></p>
+        <p>Total: ₹<span id="total">0.00</span></p>
+    </div>
+    <input type="text" id="promo-code" placeholder="Enter promo code">
+    <button id="apply-promo-btn">Apply Promo</button>
+    <button id="checkout-btn">Proceed to Checkout</button>
+    </section>
+
+
+
+
+    document.addEventListener('DOMContentLoaded', initAddToCart);
+function initAddToCart() {
+    const addToCartButtons = document.querySelectorAll('.add-to-cart');
+    const cart = document.getElementById('cart');
+    const cartItemsContainer = document.getElementById('cart-items');
+    const subtotalElement = document.getElementById('subtotal');
+    const totalElement = document.getElementById('total');
+    const promoCodeInput = document.getElementById('promo-code');
+    let cartItems = [];
+
+    function updateCart() {
+        cartItemsContainer.innerHTML = '';
+        let subtotal = 0;
+
+        if (cartItems.length > 0) {
+            cart.style.display = 'block';
+            cartItems.forEach((item, index) => {
+                subtotal += parseFloat(item.price) * item.quantity;
+
+                const cartItem = document.createElement('div');
+                cartItem.classList.add('cart-item');
+                cartItem.innerHTML = `
+                    <h4>${item.name}</h4>
+                    <p>₹${item.price} x ${item.quantity}</p>
+                    <button class="plus-btn" data-index="${index}">+</button>
+                    <button class="minus-btn" data-index="${index}">-</button>
+                    <button class="remove-btn" data-index="${index}">Remove</button>
+                `;
+                cartItemsContainer.appendChild(cartItem);
+            });
+
+            subtotalElement.textContent = subtotal.toFixed(2);
+            totalElement.textContent = (subtotal * 1.1).toFixed(2); // Assuming 10% tax
+        } else {
+            cart.style.display = 'none';
+        }
+
+        attachCartEventListeners();
+    }
+
+    function attachCartEventListeners() {
+        document.querySelectorAll('.plus-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const index = button.getAttribute('data-index');
+                cartItems[index].quantity += 1;
+                updateCart();
+            });
+        });
+
+        document.querySelectorAll('.minus-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const index = button.getAttribute('data-index');
+                if (cartItems[index].quantity > 1) {
+                    cartItems[index].quantity -= 1;
+                }
+                updateCart();
+            });
+        });
+
+        document.querySelectorAll('.remove-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const index = button.getAttribute('data-index');
+                cartItems.splice(index, 1);
+                updateCart();
+            });
+        });
+    }
+
+    function applyPromoCode() {
+        const promoCode = promoCodeInput.value;
+        if (promoCode === 'DISCOUNT10') {
+            const subtotal = parseFloat(subtotalElement.textContent);
+            const discount = subtotal * 0.10;
+            const total = subtotal - discount;
+            totalElement.textContent = total.toFixed(2);
+            alert('Promo code applied successfully!');
+        } else {
+            alert('Invalid promo code.');
+        }
+    }
+
+    addToCartButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const productItem = button.closest('.product-item');
+            const productName = productItem.querySelector('h3').textContent;
+            const productPrice = productItem.querySelector('.product-price').textContent.replace('₹', '');
+            const existingItem = cartItems.find(item => item.name === productName);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cartItems.push({ name: productName, price: parseFloat(productPrice), quantity: 1 });
+            }
+            updateCart();
+        });
+    });
+
+    document.getElementById('apply-promo-btn').addEventListener('click', applyPromoCode);
+    document.getElementById('checkout-btn').addEventListener('click', () => {
+        alert('Proceeding to checkout...');
+    });
+
+    // Initial hide cart
+    cart.style.display = 'none';
+}
+
+function initSmoothScroll() {
+    const links = document.querySelectorAll('nav ul li a, .btn');
+
+    links.forEach(link => {
+        link.addEventListener('click', (e) => {
+            if (link.getAttribute('href').startsWith('#')) {
+                e.preventDefault();
+                const targetId = link.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+}
+
+
+
+/* Shop Section */
+#shop {
+    padding: 60px 20px;
+    background-color: var(--bg-color);
+    text-align: center;
+    min-height: 100vh;
+}
+
+#shop h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+#shop p {
+    font-size: 1.1rem;
+    color: var(--secondary-text-color);
+    margin-bottom: 40px;
+}
+
+/* Style for the welcome message */
+.welcome-message {
+    background-color: #f8f9fa;
+    padding: 20px;
+    text-align: center;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #333;
+    
+    /* Initial fade-in effect */
+    animation: fadeIn 2s ease-out, pulse 2s ease-in-out 1s infinite; 
+  }
+  
+  /* Fade-in animation */
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Pulse effect (slight scale) */
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  /* When the message is hidden (fade-out) */
+  .welcome-message.fade-out {
+    animation: fadeOut 1s forwards;
+  }
+  
+  /* Fade-out animation */
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  
+  
+
+/* Categories Filter */
+.filters {
+    margin-bottom: 40px;
+}
+
+.filters h3 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.filters ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+
+.filters li {
+    display: inline-block;
+}
+
+.filter-link {
+    font-size: 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.filter-link:hover {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+/* Product Grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    background-color: var(--secondary-bg-color);
+    border-radius: 10px;
+}
+
+.product-item {
+    background-color: var(--bg-color);
+    border: 1px solid var(--secondary-text-color);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.product-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.product-item h3 {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.product-description {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.product-price {
+    font-size: 1.1rem;
+    color: var(--accent-color);
+    margin-bottom: 15px;
+}
+
+.add-to-cart {
+    font-size: 1rem;
+    color: var(--bg-color);
+    background-color: var(--primary-color);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.add-to-cart:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+/* Cart Section */
+#cart {
+    display: none;
+    border: 1px solid #ddd;
+    padding: 20px;
+    margin: 20px auto;
+    width: 50%;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#cart h2 {
+    text-align: center;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.cart-item h4 {
+    margin: 0;
+}
+
+.cart-item p {
+    margin: 0 10px 0 0;
+}
+
+.cart-item button {
+    margin: 0 5px;
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.cart-item button:hover {
+    background-color: #0056b3;
+}
+
+#cart-summary {
+    text-align: right;
+    margin-top: 10px;
+}
+
+#checkout-btn, #apply-promo-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#checkout-btn:hover, #apply-promo-btn:hover {
+    background-color: #d32f2f;
+}
+
+#promo-code {
+    width: calc(100% - 20px);
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+
+initAddToCart();
+
