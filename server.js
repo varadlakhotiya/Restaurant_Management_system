@@ -1,16 +1,17 @@
+require('dotenv').config(); // Load environment variables from .env file
+
 const express = require('express');
 const mysql = require('mysql');
 const path = require('path');
-const bodyParser = require('body-parser'); // Add this for parsing form data
+const bodyParser = require('body-parser');
 const app = express();
-const port = 3000;
 
-// Create connection to the database
+// Use environment variables for database configuration
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root', // replace with your MySQL username
-    password: 'Varad@2004', // replace with your MySQL password
-    database: 'spice_symphony'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 });
 
 // Connect to the database
@@ -153,6 +154,9 @@ app.post('/api/orders', (req, res) => {
         res.json({ success: true, orderId: result.insertId });
     });
 });
+
+// Use environment variable for port
+const port = process.env.PORT || 3000; // Fallback to 3000 if PORT is not set
 app.listen(port, async () => {
     console.log(`Server started on port ${port}`);
 
