@@ -9,8 +9,6 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
-
-
 <body>
     <!-- Header Section -->
     <div class="ir-header-section">
@@ -28,6 +26,12 @@
                     <li><a href="#shop"><i class="fa fa-shopping-cart"></i> Shop</a></li>
                     <li><a href="#testimonials"><i class="fa fa-comments"></i> Testimonials</a></li>
                     <li><a href="#contact-us-section"><i class="fa fa-phone"></i> Contact</a></li>
+                    <!-- Add after your existing navigation links -->
+                    <li class="login-link"><a href="/login"><i class="fa fa-sign-in-alt"></i> Login</a></li>
+                    <li class="register-link"><a href="/register"><i class="fa fa-user-plus"></i> Register</a></li>
+                    <li class="profile-link" style="display:none;"><a href="/profile"><i class="fa fa-user"></i> My Profile</a></li>
+                    <li class="logout-link" style="display:none;"><a href="#" id="logoutBtn"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+                    <li class="admin-link" style="display:none;"><a href="/admin"><i class="fa fa-cog"></i> Admin</a></li>
                 </ul>
             </nav>
     </header>
@@ -39,7 +43,7 @@
             <p>Embark on a culinary journey through the rich and diverse flavors of India. Our chefs craft authentic dishes using the finest ingredients, served in a serene and tropical ambiance.</p>
             
             <!-- Experience the Ambiance -->
-            <div class="ir-experience">
+            <div>
                 <h2>Experience the Flavor</h2>
                 <p>Our restaurant combines the warmth of Indian hospitality with a modern, inviting atmosphere. Perfect for family gatherings, romantic dinners, or corporate events, we provide an unforgettable dining experience.</p>
             </div>
@@ -236,162 +240,189 @@
         </div>
     </div>
     </section>
-    
+
+
     <!-- Reservation Section -->
-    <section id="reservation" class="ir-reservation-section">
-        <div class="ir-container">
-            <h2 class="ir-section-title">Reserve a Table</h2>
-            <p class="ir-section-description">
-                Plan your dining experience with us. Fill out the form below to book your table effortlessly. 
-                For immediate assistance, call us at <a href="tel:+1234567890" class="ir-call-link">+1 (234) 567-890</a>.
-            </p>
+<section id="reservation" class="ir-reservation-section">
+    <div class="ir-container">
+        <h2 class="ir-section-title">Reserve a Table</h2>
+        <p class="ir-section-description">
+            Plan your dining experience with us. Fill out the form below to book your table effortlessly. 
+            For immediate assistance, call us at <a href="tel:+1234567890" class="ir-call-link">+1 (234) 567-890</a>.
+        </p>
 
-            <!-- Multi-Step Form -->
-            <form action="#" method="POST" class="ir-reservation-form" id="reservationForm" novalidate>
-                <!-- Progress Bar -->
-<div class="ir-progress-bar">
-    <div class="ir-progress-line">
-        <div class="ir-progress-fill" style="width: 33.33%;"></div>
-    </div>
-    <div class="ir-progress-steps">
-        <div class="ir-progress-step active" data-step="1">1</div>
-        <div class="ir-progress-step" data-step="2">2</div>
-        <div class="ir-progress-step" data-step="3">3</div>
-    </div>
-</div>
-
-                <!-- Step 1: Date, Time, and Guests -->
-                <div class="ir-form-step active" data-step="1">
-                    <fieldset>
-                        <legend class="ir-form-legend">Step 1: Select Date, Time, and Guests</legend>
-
-                        <!-- Preferred Date -->
-                        <div class="ir-form-group">
-                            <label for="date" class="ir-form-label">Preferred Date:</label>
-                            <input type="date" id="date" name="date" class="ir-form-input" required aria-describedby="dateHelp">
-                            <small id="dateHelp" class="ir-form-helper">Select a date within the next 30 days.</small>
-                        </div>
-
-                        <!-- Preferred Time -->
-                        <div class="ir-form-group">
-                            <label for="time" class="ir-form-label">Preferred Time:</label>
-                            <input type="time" id="time" name="time" class="ir-form-input" required min="10:00" max="22:00">
-                        </div>
-
-                        <!-- Number of Guests -->
-                        <div class="ir-form-group">
-                            <label for="guests" class="ir-form-label">Number of Guests:</label>
-                            <input type="range" id="guests" name="guests" class="ir-form-slider" min="1" max="20" value="2" required>
-                            <span class="ir-slider-value">2</span>
-                        </div>
-
-                        <!-- Next Button -->
-                        <div class="ir-form-group">
-                            <button type="button" class="ir-next-button" aria-label="Next Step">Next</button>
-                        </div>
-                    </fieldset>
+        <!-- Multi-Step Form -->
+        <form action="#" method="POST" class="ir-reservation-form" id="reservationForm" novalidate>
+            <!-- Progress Bar -->
+            <div class="ir-progress-bar">
+                <div class="ir-progress-line">
+                    <div class="ir-progress-fill" style="width: 25%;"></div>
                 </div>
-
-                <!-- Step 2: Personal Details -->
-<div class="ir-form-step" data-step="2">
-    <fieldset>
-        <legend class="ir-form-legend">Step 2: Personal Details</legend>
-
-        <!-- Full Name -->
-        <div class="ir-form-group">
-            <label for="name" class="ir-form-label">Full Name:</label>
-            <input type="text" id="name" name="name" class="ir-form-input" required placeholder="e.g., John Doe">
-        </div>
-
-        <!-- Contact Number -->
-        <div class="ir-form-group">
-            <label for="contact" class="ir-form-label">Contact Number:</label>
-            <input type="tel" id="contact" name="contact" class="ir-form-input" required placeholder="e.g., +1 (234) 567-890" pattern="^\+?[1-9]\d{1,14}$">
-        </div>
-
-        <!-- Email Address -->
-        <div class="ir-form-group">
-            <label for="email" class="ir-form-label">Email Address:</label>
-            <input type="email" id="email" name="email" class="ir-form-input" required placeholder="e.g., johndoe@example.com">
-        </div>
-
-        <!-- Navigation Buttons -->
-        <div class="ir-form-group ir-button-group">
-            <button type="button" class="ir-prev-button" aria-label="Previous Step">Previous</button>
-            <button type="button" class="ir-next-button" aria-label="Next Step">Next</button>
-        </div>
-    </fieldset>
-</div>
-
-                <!-- Step 3: Additional Details -->
-                <div class="ir-form-step" data-step="3">
-                    <fieldset>
-                        <legend class="ir-form-legend">Step 3: Additional Details</legend>
-
-                        <!-- Seating Preference -->
-                        <div class="ir-form-group">
-                            <label for="seating" class="ir-form-label">Seating Preference:</label>
-                            <select id="seating" name="seating" class="ir-form-input" required>
-                                <option value="indoor">Indoor</option>
-                                <option value="outdoor">Outdoor</option>
-                                <option value="no-preference">No Preference</option>
-                            </select>
-                        </div>
-
-                        <!-- Special Requests -->
-                        <div class="ir-form-group">
-                            <label for="specialRequests" class="ir-form-label">Special Requests:</label>
-                            <textarea id="specialRequests" name="specialRequests" class="ir-form-textarea" rows="4" placeholder="e.g., Dietary preferences, allergies, or special arrangements"></textarea>
-                            <small class="ir-form-helper">Let us know if you have any specific requirements.</small>
-                        </div>
-
-                        <!-- Confirmation Method -->
-                        <div class="ir-form-group">
-                            <label class="ir-form-label">Confirmation Method:</label>
-                            <div class="ir-radio-group">
-                                <label>
-                                    <input type="radio" name="confirmationMethod" value="sms" checked> SMS
-                                </label>
-                                <label>
-                                    <input type="radio" name="confirmationMethod" value="email"> Email
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Navigation Buttons -->
-                        <div class="ir-form-group ir-button-group">
-                            <button type="button" class="ir-prev-button" aria-label="Previous Step">Previous</button>
-                            <button type="submit" class="ir-submit-button">Confirm Reservation</button>
-                        </div>
-                    </fieldset>
-                </div>
-            </form>
-
-            <!-- Congratulations Section -->
-            <div id="congratulations" class="ir-congratulations hidden">
-                <h2>🎉 Congratulations! 🎉</h2>
-                <p>Your reservation has been successfully booked!</p>
-                <div class="ir-animation">
-                    <!-- Confetti animation will go here -->
+                <div class="ir-progress-steps">
+                    <div class="ir-progress-step active" data-step="1">1</div>
+                    <div class="ir-progress-step" data-step="2">2</div>
+                    <div class="ir-progress-step" data-step="3">3</div>
+                    <div class="ir-progress-step" data-step="4">4</div>
                 </div>
             </div>
 
-            <!-- Receipt Section -->
-            <div id="receipt" class="ir-receipt hidden">
-                <h2>Reservation Receipt</h2>
-                <p><strong>Date:</strong> <span id="receiptDate"></span></p>
-                <p><strong>Time:</strong> <span id="receiptTime"></span></p>
-                <p><strong>Guests:</strong> <span id="receiptGuests"></span></p>
-                <p><strong>Name:</strong> <span id="receiptName"></span></p>
-                <p><strong>Contact:</strong> <span id="receiptContact"></span></p>
-                <p><strong>Email:</strong> <span id="receiptEmail"></span></p>
-                <p><strong>Seating:</strong> <span id="receiptSeating"></span></p>
-                <p><strong>Special Requests:</strong> <span id="receiptSpecialRequests"></span></p>
-                <p><strong>Confirmation Method:</strong> <span id="receiptConfirmationMethod"></span></p>
-                <button id="printReceiptButton" class="ir-button">Print Receipt</button>
+            <!-- Step 1: Date, Time, and Guests -->
+            <div class="ir-form-step active" data-step="1">
+                <fieldset>
+                    <legend class="ir-form-legend">Step 1: Select Date, Time, and Guests</legend>
+
+                    <!-- Preferred Date -->
+                    <div class="ir-form-group">
+                        <label for="date" class="ir-form-label">Preferred Date:</label>
+                        <input type="date" id="date" name="date" class="ir-form-input" required aria-describedby="dateHelp">
+                        <small id="dateHelp" class="ir-form-helper">Select a date within the next 30 days.</small>
+                    </div>
+
+                    <!-- Preferred Time -->
+                    <div class="ir-form-group">
+                        <label for="time" class="ir-form-label">Preferred Time:</label>
+                        <input type="time" id="time" name="time" class="ir-form-input" required min="10:00" max="22:00">
+                    </div>
+
+                    <!-- Number of Guests -->
+                    <div class="ir-form-group">
+                        <label for="guests" class="ir-form-label">Number of Guests:</label>
+                        <input type="range" id="guests" name="guests" class="ir-form-slider" min="1" max="20" value="2" required>
+                        <span class="ir-slider-value">2</span>
+                    </div>
+
+                    <!-- Next Button -->
+                    <div class="ir-form-group">
+                        <button type="button" class="ir-next-button" aria-label="Next Step">Next</button>
+                    </div>
+                    <!-- Inside the reservation form -->
+                    <input type="hidden" id="tableId" name="tableId">
+                </fieldset>
+            </div>
+
+            <!-- Step 2: Personal Details -->
+            <div class="ir-form-step" data-step="2">
+                <fieldset>
+                    <legend class="ir-form-legend">Step 2: Personal Details</legend>
+
+                    <!-- Full Name -->
+                    <div class="ir-form-group">
+                        <label for="name" class="ir-form-label">Full Name:</label>
+                        <input type="text" id="name" name="name" class="ir-form-input" required placeholder="e.g., John Doe">
+                    </div>
+
+                    <!-- Contact Number -->
+                    <div class="ir-form-group">
+                        <label for="contact" class="ir-form-label">Contact Number:</label>
+                        <input type="tel" id="contact" name="contact" class="ir-form-input" required placeholder="e.g., +1 (234) 567-890" pattern="^\+?[1-9]\d{1,14}$">
+                    </div>
+
+                    <!-- Email Address -->
+                    <div class="ir-form-group">
+                        <label for="email" class="ir-form-label">Email Address:</label>
+                        <input type="email" id="email" name="email" class="ir-form-input" required placeholder="e.g., johndoe@example.com">
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="ir-form-group ir-button-group">
+                        <button type="button" class="ir-prev-button" aria-label="Previous Step">Previous</button>
+                        <button type="button" class="ir-next-button" aria-label="Next Step">Next</button>
+                    </div>
+                </fieldset>
+            </div>
+
+            <!-- Step 3: Additional Details -->
+            <div class="ir-form-step" data-step="3">
+                <fieldset>
+                    <legend class="ir-form-legend">Step 3: Additional Details</legend>
+
+                    <!-- Seating Preference -->
+                    <div class="ir-form-group">
+                        <label for="seating" class="ir-form-label">Seating Preference:</label>
+                        <select id="seating" name="seating" class="ir-form-input" required>
+                            <option value="indoor">Indoor</option>
+                            <option value="outdoor">Outdoor</option>
+                            <option value="no-preference">No Preference</option>
+                        </select>
+                    </div>
+
+                    <!-- Special Requests -->
+                    <div class="ir-form-group">
+                        <label for="specialRequests" class="ir-form-label">Special Requests:</label>
+                        <textarea id="specialRequests" name="specialRequests" class="ir-form-textarea" rows="4" placeholder="e.g., Dietary preferences, allergies, or special arrangements"></textarea>
+                        <small class="ir-form-helper">Let us know if you have any specific requirements.</small>
+                    </div>
+
+                    <!-- Confirmation Method -->
+                    <div class="ir-form-group">
+                        <label class="ir-form-label">Confirmation Method:</label>
+                        <div class="ir-radio-group">
+                            <label>
+                                <input type="radio" name="confirmationMethod" value="sms" checked> SMS
+                            </label>
+                            <label>
+                                <input type="radio" name="confirmationMethod" value="email"> Email
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="ir-form-group ir-button-group">
+                        <button type="button" class="ir-prev-button" aria-label="Previous Step">Previous</button>
+                        <button type="button" class="ir-next-button" aria-label="Next Step">Next</button>
+                    </div>
+                </fieldset>
+            </div>
+
+            <!-- Step 4: Table Selection -->
+            <div class="ir-form-step" data-step="4">
+                <fieldset>
+                    <legend class="ir-form-legend">Step 4: Select Your Table</legend>
+                    
+                    <div id="availability-message" class="ir-form-group"></div>
+                    
+                    <div class="ir-form-group">
+                        <div id="table-map-container" class="table-map-container"></div>
+                    </div>
+                    
+                    <div id="selected-table-info" class="selected-table-info" style="display: none;"></div>
+                    
+                    <!-- Navigation Buttons -->
+                    <div class="ir-form-group ir-button-group">
+                        <button type="button" class="ir-prev-button" aria-label="Previous Step">Previous</button>
+                        <button type="submit" class="ir-submit-button">Confirm Reservation</button>
+                    </div>
+                </fieldset>
+            </div>
+        </form>
+
+        <!-- Congratulations Section -->
+        <div id="congratulations" class="ir-congratulations hidden">
+            <h2>🎉 Congratulations! 🎉</h2>
+            <p>Your reservation has been successfully booked!</p>
+            <div class="ir-animation">
+                <!-- Confetti animation will go here -->
             </div>
         </div>
-    </section>
+
+        <!-- Receipt Section -->
+        <div id="receipt" class="ir-receipt hidden">
+            <h2>Reservation Receipt</h2>
+            <p><strong>Date:</strong> <span id="receiptDate"></span></p>
+            <p><strong>Time:</strong> <span id="receiptTime"></span></p>
+            <p><strong>Guests:</strong> <span id="receiptGuests"></span></p>
+            <p><strong>Name:</strong> <span id="receiptName"></span></p>
+            <p><strong>Contact:</strong> <span id="receiptContact"></span></p>
+            <p><strong>Email:</strong> <span id="receiptEmail"></span></p>
+            <p><strong>Seating:</strong> <span id="receiptSeating"></span></p>
+            <p><strong>Special Requests:</strong> <span id="receiptSpecialRequests"></span></p>
+            <p><strong>Confirmation Method:</strong> <span id="receiptConfirmationMethod"></span></p>
+            <p><strong>Selected Table:</strong> <span id="receiptTable"></span></p>
+            <button id="printReceiptButton" class="ir-button">Print Receipt</button>
+        </div>
+    </div>
+</section>
+    
     
     
     <!-- Shop Section -->
@@ -416,21 +447,21 @@
           <!-- Product Grid -->
           <div class="product-grid"></div>
         </div>
-        </section>
+    </section>
         <!-- Cart Section in the second section -->
-<section id="shop-cart">
-    <h2>Your Cart</h2>
-    <div id="shop-cart-items">
-        <!-- Cart items will appear here -->
-    </div>
-    <div id="shop-cart-summary">
-        <p>Subtotal: ₹<span id="shop-subtotal">0.00</span></p>
-        <p>Total: ₹<span id="shop-total">0.00</span></p>
-    </div>
-    <input type="text" id="shop-promo-code" placeholder="Enter promo code">
-    <button id="shop-apply-promo-btn">Apply Promo</button>
-    <button id="shop-checkout-btn">Proceed to Checkout</button>
-</section> 
+        <section id="shop-cart">
+            <h2>Your Cart</h2>
+            <div id="shop-cart-items">
+                <!-- Cart items will appear here -->
+                </div>
+                <div id="shop-cart-summary">
+                    <p>Subtotal: ₹<span id="shop-subtotal">0.00</span></p>
+                    <p>Total: ₹<span id="shop-total">0.00</span></p>
+                </div>
+                <input type="text" id="shop-promo-code" placeholder="Enter promo code">
+                <button id="shop-apply-promo-btn">Apply Promo</button>
+                <button id="shop-checkout-btn">Proceed to Checkout</button>
+        </section> 
 
     <section id="testimonials" class="testimonials-section">
         <div class="container">
@@ -503,33 +534,32 @@
     </section>
         
     <!-- Contact Us Section -->
-<section id="contact-us-section" class="contact-us-section">
-    <div class="contact-us-container">
-        <h2 class="contact-us-title">Contact Us</h2>
-        <p class="contact-us-description">We'd love to hear from you! Reach out for any queries, reservations, or feedback.</p>
-        
-        <!-- Grid Layout for Contact Details and Form -->
-<div class="contact-grid">
-    <!-- Left Grid -->
-    <div class="left-grid">
-        <!-- Contact Information -->
-        <div class="contact-info">
-            <h3>Contact Information</h3>
-            <ul class="contact-us-list">
-                <li><strong>Address:</strong> Aurangabad, Maharashtra</li>
-                <li><strong>Phone:</strong> +91-123-456-7890</li>
-                <li><strong>Email:</strong> <a href="mailto:contact@spicesymphony.com" class="contact-us-email">contact@spicesymphony.com</a></li>
-            </ul>
-        </div>
+    <section id="contact-us-section" class="contact-us-section">
+        <div class="contact-us-container">
+            <h2 class="contact-us-title">Contact Us</h2>
+            <p class="contact-us-description">We'd love to hear from you! Reach out for any queries, reservations, or feedback.</p>
+            <!-- Grid Layout for Contact Details and Form -->
+            <div class="contact-grid">
+                <!-- Left Grid -->
+                <div class="left-grid">
+                    <!-- Contact Information -->
+                    <div class="contact-info">
+                        <h3>Contact Information</h3>
+                        <ul class="contact-us-list">
+                            <li><strong>Address:</strong> Aurangabad, Maharashtra</li>
+                            <li><strong>Phone:</strong> +91-123-456-7890</li>
+                            <li><strong>Email:</strong> <a href="mailto:contact@spicesymphony.com" class="contact-us-email">contact@spicesymphony.com</a></li>
+                        </ul>
+                    </div>
+                    <!-- Business Hours -->
+                    <div class="business-hours">
+                        <h3>Business Hours</h3>
+                        <ul>
+                            <li><strong>Monday - Friday:</strong> 11:00 AM - 10:00 PM</li>        
+                            <li><strong>Saturday - Sunday:</strong> 10:00 AM - 11:00 PM</li>
+                        </ul>
+                    </div>
 
-        <!-- Business Hours -->
-        <div class="business-hours">
-            <h3>Business Hours</h3>
-            <ul>
-                <li><strong>Monday - Friday:</strong> 11:00 AM - 10:00 PM</li>
-                <li><strong>Saturday - Sunday:</strong> 10:00 AM - 11:00 PM</li>
-            </ul>
-        </div>
 
         <!-- Social Media Links -->
         <div class="social-media-links">
@@ -573,20 +603,71 @@
     </div>
 </div>
     </div>
-</section>
+    </section>
 
-<!-- Footer -->
-<footer id="footer" class="footer">
+    <!-- Improved Footer Section -->
+    <footer id="footer" class="footer">
     <div class="container">
-        <!-- Restaurant branding and copyright -->
-        <div class="footer-brand">
-            <h3 class="restaurant-name">Indian Restaurant</h3>
-            <p class="footer-text">&copy; 2025 Indian Restaurant. All rights reserved.</p>
+        <div class="footer-content">
+            <!-- Restaurant branding and copyright -->
+            <div class="footer-brand">
+                <h3 class="restaurant-name">Spice Symphony</h3>
+                <p class="footer-text">&copy; 2025 Spice Symphony. All rights reserved.</p>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="#menu">Menu</a></li>
+                    <li><a href="#reservation">Reservation</a></li>
+                    <li><a href="#shop">Shop</a></li>
+                    <li><a href="#contact-us-section">Contact</a></li>
+                </ul>
+            </div>
+            
+            <!-- Contact Information -->
+            <div class="footer-contact">
+                <h4>Contact Us</h4>
+                <address>
+                    <p><i class="fas fa-map-marker-alt"></i> Aurangabad, Maharashtra</p>
+                    <p><i class="fas fa-phone"></i> +91-123-456-7890</p>
+                    <p><i class="fas fa-envelope"></i> <a href="mailto:contact@spicesymphony.com">contact@spicesymphony.com</a></p>
+                </address>
+            </div>
+            
+            <!-- Newsletter Signup -->
+            <div class="footer-newsletter">
+                <h4>Subscribe to Our Newsletter</h4>
+                <p>Stay updated with our latest offers and events</p>
+                <form class="newsletter-form">
+                    <input type="email" placeholder="Your Email" required>
+                    <button type="submit"><i class="fas fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Legal Links and Social Media -->
+        <div class="footer-bottom">
+            <div class="legal-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Cookie Policy</a>
+            </div>
+            <div class="social-links">
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            </div>
         </div>
     </div>
-</footer>
+    </footer>
 
     <script src="js/script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/table-visualization.js"></script>
 </body>
 </html>

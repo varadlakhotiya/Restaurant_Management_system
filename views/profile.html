@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Spice Symphony</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <!-- Header Section (Same as index.html) -->
+    <div class="ir-header-section">
+        <header>
+            <div class="ir-logo">
+                <h1>Spice Symphony</h1>
+            </div>
+            <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+            <nav>
+                <ul>
+                    <li><a href="/"><i class="fa fa-home"></i> Home</a></li>
+                    <li><a href="/#about"><i class="fa fa-info-circle"></i> About Us</a></li>
+                    <li><a href="/#menu"><i class="fa fa-utensils"></i> Menu</a></li>
+                    <li><a href="/#reservation"><i class="fa fa-calendar-check"></i> Reservation</a></li>
+                    <li><a href="/#shop"><i class="fa fa-shopping-cart"></i> Shop</a></li>
+                    <li><a href="/#testimonials"><i class="fa fa-comments"></i> Testimonials</a></li>
+                    <li><a href="/#contact-us-section"><i class="fa fa-phone"></i> Contact</a></li>
+                    <li id="userNav" style="display:none;"><a href="/profile"><i class="fa fa-user"></i> <span id="userName">My Profile</span></a></li>
+                </ul>
+            </nav>
+        </header>
+    </div>
+
+    <!-- Profile Section -->
+    <section class="profile-section">
+        <div class="profile-container">
+            <h2 class="profile-title">My Profile</h2>
+            
+            <!-- Profile Navigation -->
+            <div class="profile-nav">
+                <ul>
+                    <li class="active" data-tab="personal-info">Personal Information</li>
+                    <li data-tab="preferences">Preferences</li>
+                    <li data-tab="reservations">My Reservations</li>
+                    <li data-tab="orders">Order History</li>
+                </ul>
+            </div>
+            
+            <!-- Profile Content -->
+            <div class="profile-content">
+                <!-- Personal Information Tab -->
+                <div class="profile-tab active" id="personal-info">
+                    <h3>Personal Information</h3>
+                    <form id="profileForm">
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label for="firstName">First Name</label>
+                                <input type="text" id="firstName" name="firstName">
+                            </div>
+                            <div class="form-group half">
+                                <label for="lastName">Last Name</label>
+                                <input type="text" id="lastName" name="lastName">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" readonly>
+                            </div>
+                            <div class="form-group half">
+                                <label for="phone">Phone</label>
+                                <input type="tel" id="phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="address">Address</label>
+                            <input type="text" id="address" name="address">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group third">
+                                <label for="city">City</label>
+                                <input type="text" id="city" name="city">
+                            </div>
+                            <div class="form-group third">
+                                <label for="state">State</label>
+                                <input type="text" id="state" name="state">
+                            </div>
+                            <div class="form-group third">
+                                <label for="postalCode">Postal Code</label>
+                                <input type="text" id="postalCode" name="postalCode">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label for="birthday">Birthday</label>
+                                <input type="date" id="birthday" name="birthday">
+                            </div>
+                            <div class="form-group half">
+                                <label for="anniversary">Anniversary</label>
+                                <input type="date" id="anniversary" name="anniversary">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="profile-save-btn">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Preferences Tab -->
+                <div class="profile-tab" id="preferences">
+                    <h3>Dining Preferences</h3>
+                    <form id="preferencesForm">
+                        <div class="form-group">
+                            <label for="preferredPaymentMethod">Preferred Payment Method</label>
+                            <select id="preferredPaymentMethod" name="preferredPaymentMethod">
+                                <option value="credit_card">Credit Card</option>
+                                <option value="debit_card">Debit Card</option>
+                                <option value="upi">UPI</option>
+                                <option value="cash">Cash</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dietaryPreferences">Dietary Preferences</label>
+                            <textarea id="dietaryPreferences" name="dietaryPreferences" placeholder="Vegetarian, Vegan, Jain, etc."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="allergies">Allergies or Food Restrictions</label>
+                            <textarea id="allergies" name="allergies" placeholder="Dairy, Nuts, Gluten, etc."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="favoriteDishes">Favorite Dishes at Spice Symphony</label>
+                            <textarea id="favoriteDishes" name="favoriteDishes" placeholder="Paneer Tikka, Masala Dosa, etc."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="profile-save-btn">Save Preferences</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Reservations Tab -->
+                <div class="profile-tab" id="reservations">
+                    <h3>My Reservations</h3>
+                    <div id="reservationsList" class="profile-list">
+                        <!-- Reservations will be loaded dynamically -->
+                        <div class="loader">Loading your reservations...</div>
+                    </div>
+                </div>
+                
+                <!-- Orders Tab -->
+                <div class="profile-tab" id="orders">
+                    <h3>Order History</h3>
+                    <div id="ordersList" class="profile-list">
+                        <!-- Orders will be loaded dynamically -->
+                        <div class="loader">Loading your orders...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer (Same as index.html) -->
+    <footer id="footer" class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <!-- Restaurant branding and copyright -->
+                <div class="footer-brand">
+                    <h3 class="restaurant-name">Spice Symphony</h3>
+                    <p class="footer-text">&copy; 2025 Spice Symphony. All rights reserved.</p>
+                </div>
+                
+                <!-- Quick Links -->
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#menu">Menu</a></li>
+                        <li><a href="#reservation">Reservation</a></li>
+                        <li><a href="#shop">Shop</a></li>
+                        <li><a href="#contact-us-section">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact Information -->
+                <div class="footer-contact">
+                    <h4>Contact Us</h4>
+                    <address>
+                        <p><i class="fas fa-map-marker-alt"></i> Aurangabad, Maharashtra</p>
+                        <p><i class="fas fa-phone"></i> +91-123-456-7890</p>
+                        <p><i class="fas fa-envelope"></i> <a href="mailto:contact@spicesymphony.com">contact@spicesymphony.com</a></p>
+                    </address>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/js/script.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/profile.js"></script>
+</body>
+</html>

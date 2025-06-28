@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant System Code Flow</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        .section:last-child {
+            border-bottom: none;
+        }
+        .section h2 {
+            color: #333;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin-bottom: 20px;
+        }
+        .flow-diagram {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+        }
+        .code-example {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .file-box {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #ff6b6b;
+        }
+        .database-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+        .database-table th, .database-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .database-table th {
+            background: #667eea;
+            color: white;
+        }
+        .arrow {
+            text-align: center;
+            font-size: 24px;
+            color: #667eea;
+            margin: 15px 0;
+        }
+        .benefit-card {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .system-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .flow-step {
+            background: #fff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+        .flow-step::after {
+            content: '→';
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: #667eea;
+        }
+        .flow-step:last-child::after {
+            display: none;
+        }
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .tech-item {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ Spice Symphony Restaurant Management System</h1>
+            <p>Complete Code Flow Analysis with Examples</p>
+            <div class="tech-stack">
+                <span class="tech-item">Node.js</span>
+                <span class="tech-item">Express.js</span>
+                <span class="tech-item">MySQL</span>
+                <span class="tech-item">HTML5</span>
+                <span class="tech-item">CSS3</span>
+                <span class="tech-item">JavaScript</span>
+                <span class="tech-item">JWT Auth</span>
+            </div>
+        </div>
+
+        <!-- DATABASE SECTION -->
+        <div class="section">
+            <h2>📊 Database Layer (restaurant.sql)</h2>
+            <div class="file-box">
+                <strong>File Purpose:</strong> Stores all restaurant data - menu, reservations, users, orders
+            </div>
+            
+            <div class="flow-diagram">
+                <h3>Database Structure Example:</h3>
+                <table class="database-table">
+                    <tr>
+                        <th>Table Name</th>
+                        <th>Purpose</th>
+                        <th>Example Data</th>
+                    </tr>
+                    <tr>
+                        <td>menu_items</td>
+                        <td>Store dishes</td>
+                        <td>Paneer Butter Masala - ₹250</td>
+                    </tr>
+                    <tr>
+                        <td>reservations</td>
+                        <td>Table bookings</td>
+                        <td>John Doe, 4 guests, Table A1, 7:00 PM</td>
+                    </tr>
+                    <tr>
+                        <td>users</td>
+                        <td>Customer accounts</td>
+                        <td>john@email.com, encrypted password</td>
+                    </tr>
+                    <tr>
+                        <td>orders</td>
+                        <td>Food orders</td>
+                        <td>Order #123: 2x Dosa, 1x Chai = ₹180</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="code-example">
+CREATE TABLE reservations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    date DATE NOT NULL,
+    time TIME NOT NULL,
+    guests INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    contact VARCHAR(20) NOT NULL,
+    email VARCHAR(100) NOT NULL
+);
+
+INSERT INTO menu_items VALUES 
+('Paneer Butter Masala', 'Rich creamy curry', 250.00, 'main-course');
+            </div>
+        </div>
+
+        <!-- BACKEND SECTION -->
+        <div class="section">
+            <h2>⚙️ Backend Server (server.js)</h2>
+            <div class="file-box">
+                <strong>File Purpose:</strong> Handles all API requests, authentication, and database operations
+            </div>
+            
+            <div class="system-flow">
+                <div class="flow-step">
+                    <h4>Client Request</h4>
+                    <p>Browser sends HTTP request</p>
+                </div>
+                <div class="flow-step">
+                    <h4>Express Router</h4>
+                    <p>Routes to correct endpoint</p>
+                </div>
+                <div class="flow-step">
+                    <h4>Database Query</h4>
+                    <p>Fetch/Update data in MySQL</p>
+                </div>
+                <div class="flow-step">
+                    <h4>JSON Response</h4>
+                    <p>Send data back to client</p>
+                </div>
+            </div>
+            
+            <div class="code-example">
+// Example: Menu API Endpoint
+app.get('/api/menu', (req, res) => {
+    // 1. Receive request for menu
+    let sql = 'SELECT * FROM menu_items';
+    
+    // 2. Query database
+    db.query(sql, (err, results) => {
+        if (err) {
+            return res.status(500).json({error: 'Database error'});
+        }
+        
+        // 3. Group data by category
+        const groupedData = results.reduce((acc, item) => {
+            if (!acc[item.category]) acc[item.category] = {};
+            if (!acc[item.category][item.subcategory]) 
+                acc[item.category][item.subcategory] = [];
+            acc[item.category][item.subcategory].push(item);
+            return acc;
+        }, {});
+        
+        // 4. Send organized menu to frontend
+        res.json(groupedData);
+    });
+});
+
+// Example: Reservation booking
+app.post('/api/reservation', (req, res) => {
+    const {date, time, guests, name, contact, email} = req.body;
+    
+    // Insert into database
+    const sql = `INSERT INTO reservations 
+                (date, time, guests, name, contact, email) 
+                VALUES (?, ?, ?, ?, ?, ?)`;
+    
+    db.query(sql, [date, time, guests, name, contact, email], (err, result) => {
+        if (err) {
+            res.status(500).json({success: false, message: 'Booking failed'});
+        } else {
+            res.json({success: true, message: 'Table booked successfully!'});
+        }
+    });
+});
+            </div>
+        </div>
+
+        <!-- FRONTEND SECTION -->
+        <div class="section">
+            <h2>🖥️ Frontend Pages</h2>
+            
+            <div class="file-box">
+                <strong>index.html:</strong> Main customer website with menu, reservations, shop
+            </div>
+            
+            <div class="flow-diagram">
+                <h3>Customer Journey Example:</h3>
+                <div class="system-flow">
+                    <div class="flow-step">
+                        <h4>🏠 Landing</h4>
+                        <p>View restaurant info</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>🍽️ Browse Menu</h4>
+                        <p>Filter dishes, add to cart</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>📅 Book Table</h4>
+                        <p>Select date, time, guests</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>💳 Order & Pay</h4>
+                        <p>Complete transaction</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="code-example">
+<!-- Menu Section HTML Structure -->
+&lt;section id="menu"&gt;
+    &lt;div class="filters"&gt;
+        &lt;ul class="category-filters"&gt;
+            &lt;li&gt;&lt;a href="#" data-category="all"&gt;All&lt;/a&gt;&lt;/li&gt;
+            &lt;li&gt;&lt;a href="#" data-category="appetizers"&gt;Appetizers&lt;/a&gt;&lt;/li&gt;
+            &lt;li&gt;&lt;a href="#" data-category="main-course"&gt;Main Course&lt;/a&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+    &lt;/div&gt;
+    
+    &lt;div class="menu-categories" id="menu-categories"&gt;
+        &lt;!-- Dynamic menu items loaded here --&gt;
+    &lt;/div&gt;
+    
+    &lt;div id="cart"&gt;
+        &lt;h3&gt;Cart&lt;/h3&gt;
+        &lt;div id="cart-items"&gt;&lt;/div&gt;
+        &lt;button id="order-now"&gt;Order Now&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/section&gt;
+            </div>
+            
+            <div class="file-box">
+                <strong>admin-dashboard.html:</strong> Restaurant management interface
+            </div>
+            
+            <div class="flow-diagram">
+                <h3>Admin Dashboard Sections:</h3>
+                <ul>
+                    <li><strong>📊 Dashboard:</strong> Today's stats, charts, recent activity</li>
+                    <li><strong>📅 Reservations:</strong> Manage all table bookings</li>
+                    <li><strong>🍽️ Orders:</strong> Track food orders and kitchen status</li>
+                    <li><strong>🪑 Tables:</strong> Configure restaurant layout</li>
+                    <li><strong>📋 Menu:</strong> Add/edit/delete menu items</li>
+                    <li><strong>👥 Users:</strong> Customer account management</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- JAVASCRIPT SECTION -->
+        <div class="section">
+            <h2>⚡ JavaScript Logic</h2>
+            
+            <div class="file-box">
+                <strong>script.js:</strong> Main website functionality
+            </div>
+            
+            <div class="code-example">
+// Example: Menu Loading Process
+function fetchAndRenderMenuItems() {
+    // 1. Call backend API
+    fetch('/api/menu')
+        .then(response => response.json())
+        .then(data => {
+            // 2. Clear existing menu
+            const menuContainer = document.getElementById('menu-categories');
+            menuContainer.innerHTML = '';
+            
+            // 3. Loop through categories (appetizers, main-course, etc.)
+            for (const [category, subcategories] of Object.entries(data)) {
+                for (const [subcategory, items] of Object.entries(subcategories)) {
+                    
+                    // 4. Create HTML for each dish
+                    items.forEach(item => {
+                        const dishCard = document.createElement('div');
+                        dishCard.className = 'menu-card';
+                        dishCard.innerHTML = `
+                            &lt;img src="${item.image}" alt="${item.name}"&gt;
+                            &lt;h4&gt;${item.name}&lt;/h4&gt;
+                            &lt;p&gt;${item.description}&lt;/p&gt;
+                            &lt;span&gt;₹${item.price}&lt;/span&gt;
+                            &lt;button class="add-to-cart"&gt;Add to Cart&lt;/button&gt;
+                        `;
+                        menuContainer.appendChild(dishCard);
+                    });
+                }
+            }
+            
+            // 5. Add event listeners for cart buttons
+            addCartEventListeners();
+        });
+}
+
+// Shopping Cart Management
+let cart = [];
+function addToCart(item) {
+    cart.push(item);
+    updateCartDisplay();
+    showNotification('Item added to cart!');
+}
+            </div>
+            
+            <div class="file-box">
+                <strong>table-visualization.js:</strong> Interactive table selection
+            </div>
+            
+            <div class="code-example">
+// Table Selection System
+class TableMap {
+    constructor(containerId) {
+        this.canvas = document.createElement('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.tables = [];
+        this.selectedTable = null;
+    }
+    
+    // Load available tables for specific date/time
+    loadTables(date, time, guests) {
+        fetch(`/api/tables/availability?date=${date}&time=${time}&guests=${guests}`)
+            .then(response => response.json())
+            .then(data => {
+                this.tables = data.availableTables;
+                this.render(); // Draw tables on canvas
+            });
+    }
+    
+    // Draw restaurant layout
+    render() {
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw each table
+        this.tables.forEach(table => {
+            // Different shapes for indoor/outdoor
+            if (table.section === 'indoor') {
+                this.drawSquareTable(table);
+            } else {
+                this.drawRoundTable(table);
+            }
+        });
+    }
+    
+    // Handle table clicks
+    selectTable(table) {
+        this.selectedTable = table;
+        document.getElementById('tableId').value = table.id;
+        this.render(); // Update visual
+    }
+}
+            </div>
+        </div>
+
+        <!-- BENEFITS SECTION -->
+        <div class="section">
+            <h2>🎯 Benefits for Restaurant Owners</h2>
+            
+            <div class="benefit-card">
+                <h3>💼 Complete Business Management</h3>
+                <ul>
+                    <li><strong>Real-time Dashboard:</strong> See today's reservations, orders, revenue at a glance</li>
+                    <li><strong>Table Management:</strong> Visual layout, availability tracking, optimal seating</li>
+                    <li><strong>Menu Control:</strong> Easy add/edit/delete dishes, price updates, category management</li>
+                    <li><strong>Order Tracking:</strong> Kitchen workflow, order status, customer communication</li>
+                </ul>
+            </div>
+            
+            <div class="benefit-card">
+                <h3>📊 Data Analytics & Insights</h3>
+                <ul>
+                    <li><strong>Revenue Tracking:</strong> Daily/monthly/yearly sales charts</li>
+                    <li><strong>Popular Dishes:</strong> Best-selling items analysis</li>
+                    <li><strong>Customer Analytics:</strong> Repeat customers, preferences, feedback</li>
+                    <li><strong>Peak Hours:</strong> Optimize staffing and table allocation</li>
+                </ul>
+            </div>
+            
+            <div class="benefit-card">
+                <h3>⚡ Operational Efficiency</h3>
+                <ul>
+                    <li><strong>Automated Reservations:</strong> No double bookings, instant confirmations</li>
+                    <li><strong>Inventory Integration:</strong> Track products, low stock alerts</li>
+                    <li><strong>Staff Management:</strong> User roles, access control, activity tracking</li>
+                    <li><strong>Customer Database:</strong> Preferences, allergies, special occasions</li>
+                </ul>
+            </div>
+            
+            <div class="benefit-card">
+                <h3>💰 Revenue Growth</h3>
+                <ul>
+                    <li><strong>Online Ordering:</strong> Increase sales with web orders</li>
+                    <li><strong>Product Sales:</strong> Sell spices/beverages for additional revenue</li>
+                    <li><strong>Customer Retention:</strong> Loyalty tracking, personalized offers</li>
+                    <li><strong>Table Optimization:</strong> Maximize seating efficiency and turnover</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🤝 Benefits for Customers</h2>
+            
+            <div class="benefit-card">
+                <h3>🎯 Convenient Booking Experience</h3>
+                <ul>
+                    <li><strong>Visual Table Selection:</strong> Choose exact table location (indoor/outdoor)</li>
+                    <li><strong>Real-time Availability:</strong> See available slots instantly</li>
+                    <li><strong>Multi-step Reservation:</strong> Easy date/time/guest selection</li>
+                    <li><strong>Instant Confirmation:</strong> SMS/Email notifications</li>
+                </ul>
+            </div>
+            
+            <div class="benefit-card">
+                <h3>🍽️ Enhanced Dining Experience</h3>
+                <ul>
+                    <li><strong>Digital Menu:</strong> Browse full menu with images and descriptions</li>
+                    <li><strong>Filter Options:</strong> Find dishes by category, dietary preferences</li>
+                    <li><strong>Pre-ordering:</strong> Order before arrival to reduce wait time</li>
+                    <li><strong>Special Requests:</strong> Dietary restrictions, allergies, celebrations</li>
+                </ul>
+            </div>
+            
+            <div class="benefit-card">
+                <h3>📱 Personal Account Features</h3>
+                <ul>
+                    <li><strong>Order History:</strong> Reorder favorite meals easily</li>
+                    <li><strong>Saved Preferences:</strong> Dietary needs, payment methods</li>
+                    <li><strong>Loyalty Points:</strong> Earn rewards with every visit</li>
+                    <li><strong>Special Occasions:</strong> Birthday/anniversary reminders</li>
+                </ul>
+            </div>
+            
+            <div class="benefit-card">
+                <h3>🛒 Online Shopping</h3>
+                <ul>
+                    <li><strong>Spice Collection:</strong> Buy restaurant-quality spices at home</li>
+                    <li><strong>Beverages:</strong> Traditional Indian drinks and teas</li>
+                    <li><strong>Recipe Ingredients:</strong> Everything needed for home cooking</li>
+                    <li><strong>Gift Options:</strong> Send spice collections to family/friends</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- SYSTEM FLOW -->
+        <div class="section">
+            <h2>🔄 Complete System Flow Example</h2>
+            
+            <div class="flow-diagram">
+                <h3>Customer Makes Reservation:</h3>
+                <div class="system-flow">
+                    <div class="flow-step">
+                        <h4>1. Visit Website</h4>
+                        <p>index.html loads</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>2. Fill Form</h4>
+                        <p>script.js handles input</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>3. Check Tables</h4>
+                        <p>table-visualization.js</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>4. API Call</h4>
+                        <p>server.js processes</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>5. Save to DB</h4>
+                        <p>restaurant.sql stores</p>
+                    </div>
+                    <div class="flow-step">
+                        <h4>6. Confirmation</h4>
+                        <p>Success message shown</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="code-example">
+// Complete Reservation Flow Code Example:
+
+// 1. Frontend Form Submission (script.js)
+document.getElementById('reservationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        date: document.getElementById('date').value,
+        time: document.getElementById('time').value,
+        guests: document.getElementById('guests').value,
+        name: document.getElementById('name').value,
+        contact: document.getElementById('contact').value,
+        email: document.getElementById('email').value,
+        tableId: document.getElementById('tableId').value
+    };
+    
+    // 2. Send to Backend
+    fetch('/api/reservation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showSuccessMessage('Table booked successfully!');
+            displayReceipt(formData);
+        }
+    });
+});
+
+// 3. Backend Processing (server.js)
+app.post('/api/reservation', (req, res) => {
+    const {date, time, guests, name, contact, email, tableId} = req.body;
+    
+    // 4. Database Transaction
+    db.beginTransaction(err => {
+        // Insert reservation
+        const reservationSql = `INSERT INTO reservations 
+            (date, time, guests, name, contact, email) 
+            VALUES (?, ?, ?, ?, ?, ?)`;
+        
+        db.query(reservationSql, [date, time, guests, name, contact, email], 
+        (err, result) => {
+            if (err) return db.rollback();
+            
+            // Update table availability
+            const tableSql = `INSERT INTO table_availability 
+                (table_id, date, time_slot, is_available) 
+                VALUES (?, ?, ?, FALSE)`;
+            
+            db.query(tableSql, [tableId, date, time], (err) => {
+                if (err) return db.rollback();
+                
+                db.commit(() => {
+                    res.json({success: true, reservationId: result.insertId});
+                });
+            });
+        });
+    });
+});
+            </div>
+        </div>
+    </div>
+</body>
+</html>

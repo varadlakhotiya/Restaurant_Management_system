@@ -234,3 +234,93 @@ CREATE TABLE orders (
 
 SELECT * FROM orders;
 TRUNCATE TABLE orders;
+
+-- User table schema
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20),
+    role ENUM('customer', 'admin', 'staff') DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL
+);
+
+-- User profile table schema
+CREATE TABLE user_profiles (
+    user_id INT PRIMARY KEY,
+    address TEXT,
+    city VARCHAR(50),
+    state VARCHAR(50),
+    postal_code VARCHAR(20),
+    preferred_payment_method VARCHAR(50),
+    dietary_preferences TEXT,
+    allergies TEXT,
+    favorite_dishes TEXT,
+    birthday DATE,
+    anniversary DATE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- User sessions table for persistent login
+CREATE TABLE user_sessions (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id INT NOT NULL,
+    expires TIMESTAMP NOT NULL,
+    data TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Table schema for restaurant tables
+CREATE TABLE restaurant_tables (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    table_number VARCHAR(10) NOT NULL,
+    capacity INT NOT NULL,
+    section ENUM('indoor', 'outdoor') NOT NULL,
+    status ENUM('available', 'reserved', 'occupied', 'maintenance') DEFAULT 'available',
+    coordinates_x INT,
+    coordinates_y INT
+);
+
+-- Table slot availability schema
+CREATE TABLE table_availability (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    table_id INT NOT NULL,
+    date DATE NOT NULL,
+    time_slot TIME NOT NULL,
+    is_available BOOLEAN DEFAULT TRUE,
+    reservation_id INT NULL,
+    FOREIGN KEY (table_id) REFERENCES restaurant_tables(id),
+    FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_table_slot (table_id, date, time_slot)
+);
+
+-- Update the existing reservations table with user_id foreign key
+ALTER TABLE reservations ADD COLUMN user_id INT NULL;
+ALTER TABLE reservations ADD COLUMN status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending' AFTER special_requests;
+ALTER TABLE reservations ADD COLUMN table_id INT NULL;
+ALTER TABLE reservations ADD CONSTRAINT fk_reservations_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE reservations ADD CONSTRAINT fk_reservations_table FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL;
+
+-- Update the existing orders table with user_id foreign key
+ALTER TABLE orders ADD COLUMN user_id INT NULL;
+ALTER TABLE orders ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+
+
+SHOW TABLES;
+Select * FROM menu_items;
+Select * FROM orders;
+Select * FROM products;
+Select * FROM reservations;
+Select * FROM restaurant_tables;
+Select * FROM table_availability;
+Select * FROM testimonials;
+Select * FROM user_profiles;
+Select * FROM user_sessions;
+Select * FROM users;
+
+UPDATE users 
+SET role = 'admin' 
+WHERE id = 4;

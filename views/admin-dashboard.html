@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Spice Symphony</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+</head>
+<body class="admin-body">
+    <!-- Admin Header -->
+    <header class="admin-header">
+        <div class="admin-logo">
+            <h1>Spice Symphony</h1>
+            <span class="admin-label">Admin Dashboard</span>
+        </div>
+        <div class="admin-user-info">
+            <span id="admin-username">Admin User</span>
+            <img src="/images/admin-avatar.png" alt="Admin" class="admin-avatar">
+            <div class="admin-dropdown">
+                <a href="/profile"><i class="fas fa-user"></i> My Profile</a>
+                <a href="/" target="_blank"><i class="fas fa-external-link-alt"></i> View Website</a>
+                <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar">
+        <nav class="admin-nav">
+            <ul>
+                <li class="active" data-section="dashboard">
+                    <a href="#dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </li>
+                <li data-section="reservations">
+                    <a href="#reservations"><i class="fas fa-calendar-check"></i> Reservations</a>
+                </li>
+                <li data-section="orders">
+                    <a href="#orders"><i class="fas fa-utensils"></i> Orders</a>
+                </li>
+                <li data-section="tables">
+                    <a href="#tables"><i class="fas fa-chair"></i> Tables</a>
+                </li>
+                <li data-section="menu">
+                    <a href="#menu"><i class="fas fa-clipboard-list"></i> Menu</a>
+                </li>
+                <li data-section="users">
+                    <a href="#users"><i class="fas fa-users"></i> Users</a>
+                </li>
+                <li data-section="settings">
+                    <a href="#settings"><i class="fas fa-cog"></i> Settings</a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Admin Content Area -->
+    <main class="admin-content">
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="admin-section active">
+            <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+            
+            <!-- Quick Stats -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                    <div class="stat-content">
+                        <h3>Today's Reservations</h3>
+                        <div class="stat-value" id="today-reservations">0</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-utensils"></i></div>
+                    <div class="stat-content">
+                        <h3>Today's Orders</h3>
+                        <div class="stat-value" id="today-orders">0</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-content">
+                        <h3>Total Customers</h3>
+                        <div class="stat-value" id="total-customers">0</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+                    <div class="stat-content">
+                        <h3>Revenue (This Month)</h3>
+                        <div class="stat-value" id="monthly-revenue">₹0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts & Graphs -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Reservations (Last 7 Days)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="reservations-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Revenue (Last 6 Months)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="revenue-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h3>Recent Activity</h3>
+                <div class="activity-wrapper" id="recent-activity-list">
+                    <!-- Activity items will be loaded dynamically -->
+                    <div class="activity-item">
+                        <div class="activity-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                        <div class="activity-content">Loading recent activities...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Reservations Section -->
+        <section id="reservations-section" class="admin-section">
+            <h2><i class="fas fa-calendar-check"></i> Reservations</h2>
+            
+            <!-- Filter & Search -->
+            <div class="admin-filters">
+                <div class="filter-group">
+                    <label for="reservation-date">Date</label>
+                    <input type="date" id="reservation-date" class="filter-input">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="reservation-status">Status</label>
+                    <select id="reservation-status" class="filter-input">
+                        <option value="all">All</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="pending">Pending</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                
+                <div class="search-group">
+                    <input type="text" id="reservation-search" placeholder="Search by name, email or phone..." class="search-input">
+                    <button class="search-btn"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+            
+            <!-- Reservations Table -->
+            <div class="table-responsive">
+                <table class="admin-table" id="reservations-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Name</th>
+                            <th>Guests</th>
+                            <th>Contact</th>
+                            <th>Seating</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Reservations will be loaded dynamically -->
+                        <tr class="loading-row">
+                            <td colspan="9">Loading reservations...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="admin-pagination" id="reservations-pagination">
+                <!-- Pagination will be generated dynamically -->
+            </div>
+        </section>
+        
+        <!-- Orders Section -->
+        <section id="orders-section" class="admin-section">
+            <h2><i class="fas fa-utensils"></i> Orders</h2>
+            
+            <!-- Filter & Search -->
+            <div class="admin-filters">
+                <div class="filter-group">
+                    <label for="order-date">Date</label>
+                    <input type="date" id="order-date" class="filter-input">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="order-type">Type</label>
+                    <select id="order-type" class="filter-input">
+                        <option value="all">All</option>
+                        <option value="dine-in">Dine-in</option>
+                        <option value="takeaway">Takeaway</option>
+                        <option value="delivery">Delivery</option>
+                    </select>
+                </div>
+                
+                <div class="search-group">
+                    <input type="text" id="order-search" placeholder="Search by order ID or customer name..." class="search-input">
+                    <button class="search-btn"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+            
+            <!-- Orders Table -->
+            <div class="table-responsive">
+                <table class="admin-table" id="orders-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date & Time</th>
+                            <th>Customer</th>
+                            <th>Table</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Orders will be loaded dynamically -->
+                        <tr class="loading-row">
+                            <td colspan="8">Loading orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="admin-pagination" id="orders-pagination">
+                <!-- Pagination will be generated dynamically -->
+            </div>
+        </section>
+        
+        <!-- Tables Section -->
+        <section id="tables-section" class="admin-section">
+            <h2><i class="fas fa-chair"></i> Tables</h2>
+            
+            <!-- Table Management -->
+            <div class="tables-management">
+                <div class="tables-controls">
+                    <button class="admin-btn primary" id="add-table-btn">
+                        <i class="fas fa-plus"></i> Add New Table
+                    </button>
+                    <div class="filter-group">
+                        <label for="table-section-filter">Section</label>
+                        <select id="table-section-filter" class="filter-input">
+                            <option value="all">All</option>
+                            <option value="indoor">Indoor</option>
+                            <option value="outdoor">Outdoor</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="table-status-filter">Status</label>
+                        <select id="table-status-filter" class="filter-input">
+                            <option value="all">All</option>
+                            <option value="available">Available</option>
+                            <option value="reserved">Reserved</option>
+                            <option value="occupied">Occupied</option>
+                            <option value="maintenance">Maintenance</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="tables-grid" id="tables-grid">
+                    <!-- Tables will be loaded dynamically -->
+                    <div class="loading-tables">Loading tables...</div>
+                </div>
+            </div>
+            
+            <!-- Table View Toggle -->
+            <div class="view-toggle">
+                <button class="toggle-btn active" data-view="grid"><i class="fas fa-th"></i> Grid View</button>
+                <button class="toggle-btn" data-view="list"><i class="fas fa-list"></i> List View</button>
+            </div>
+            
+            <!-- Tables List (Alternative View) -->
+            <div class="table-responsive tables-list-view" style="display: none;">
+                <table class="admin-table" id="tables-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Table #</th>
+                            <th>Capacity</th>
+                            <th>Section</th>
+                            <th>Status</th>
+                            <th>Current/Next Reservation</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Tables will be loaded dynamically -->
+                        <tr class="loading-row">
+                            <td colspan="7">Loading tables...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <!-- Menu Section -->
+        <section id="menu-section" class="admin-section">
+            <h2><i class="fas fa-clipboard-list"></i> Menu</h2>
+            
+            <!-- Menu Controls -->
+            <div class="menu-controls">
+                <button class="admin-btn primary" id="add-menu-item-btn">
+                    <i class="fas fa-plus"></i> Add New Item
+                </button>
+                <div class="filter-group">
+                    <label for="menu-category-filter">Category</label>
+                    <select id="menu-category-filter" class="filter-input">
+                        <option value="all">All Categories</option>
+                        <option value="appetizers">Appetizers</option>
+                        <option value="main-course">Main Course</option>
+                        <option value="desserts">Desserts</option>
+                        <option value="beverages">Beverages</option>
+                        <option value="street-food">Street Food</option>
+                        <option value="south-indian">South Indian</option>
+                        <option value="breads">Breads</option>
+                        <option value="rice-dishes">Rice Dishes</option>
+                    </select>
+                </div>
+                <div class="search-group">
+                    <input type="text" id="menu-search" placeholder="Search menu items..." class="search-input">
+                    <button class="search-btn"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+            
+            <!-- Menu Items Table -->
+            <div class="table-responsive">
+                <table class="admin-table" id="menu-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Subcategory</th>
+                            <th>Price (₹)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Menu items will be loaded dynamically -->
+                        <tr class="loading-row">
+                            <td colspan="7">Loading menu items...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="admin-pagination" id="menu-pagination">
+                <!-- Pagination will be generated dynamically -->
+            </div>
+        </section>
+        
+        <!-- Users Section -->
+        <section id="users-section" class="admin-section">
+            <h2><i class="fas fa-users"></i> Users</h2>
+            
+            <!-- Users Controls -->
+            <div class="users-controls">
+                <button class="admin-btn primary" id="add-user-btn">
+                    <i class="fas fa-user-plus"></i> Add New User
+                </button>
+                <div class="filter-group">
+                    <label for="user-role-filter">Role</label>
+                    <select id="user-role-filter" class="filter-input">
+                        <option value="all">All Roles</option>
+                        <option value="customer">Customer</option>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="search-group">
+                    <input type="text" id="user-search" placeholder="Search users..." class="search-input">
+                    <button class="search-btn"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="table-responsive">
+                <table class="admin-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Joined Date</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Users will be loaded dynamically -->
+                        <tr class="loading-row">
+                            <td colspan="8">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="admin-pagination" id="users-pagination">
+                <!-- Pagination will be generated dynamically -->
+            </div>
+        </section>
+        
+        <!-- Settings Section -->
+        <section id="settings-section" class="admin-section">
+            <h2><i class="fas fa-cog"></i> Settings</h2>
+            
+            <!-- Settings Tabs -->
+            <div class="settings-tabs">
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="general">General</button>
+                    <button class="tab-btn" data-tab="hours">Business Hours</button>
+                    <button class="tab-btn" data-tab="email">Email Notifications</button>
+                    <button class="tab-btn" data-tab="seo">SEO Settings</button>
+                </div>
+                
+                <!-- General Settings Tab -->
+                <div class="settings-tab active" id="general-tab">
+                    <h3>General Settings</h3>
+                    <form id="general-settings-form">
+                        <div class="form-group">
+                            <label for="restaurant-name">Restaurant Name</label>
+                            <input type="text" id="restaurant-name" name="restaurant-name" value="Spice Symphony">
+                        </div>
+                        <div class="form-group">
+                            <label for="restaurant-address">Address</label>
+                            <textarea id="restaurant-address" name="restaurant-address">Aurangabad, Maharashtra</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="restaurant-phone">Phone Number</label>
+                            <input type="text" id="restaurant-phone" name="restaurant-phone" value="+91-123-456-7890">
+                        </div>
+                        <div class="form-group">
+                            <label for="restaurant-email">Email</label>
+                            <input type="email" id="restaurant-email" name="restaurant-email" value="contact@spicesymphony.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="restaurant-currency">Currency</label>
+                            <select id="restaurant-currency" name="restaurant-currency">
+                                <option value="INR" selected>Indian Rupee (₹)</option>
+                                <option value="USD">US Dollar ($)</option>
+                                <option value="EUR">Euro (€)</option>
+                                <option value="GBP">British Pound (£)</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="admin-btn primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Business Hours Tab -->
+                <div class="settings-tab" id="hours-tab">
+                    <h3>Business Hours</h3>
+                    <form id="business-hours-form">
+                        <div class="business-hours-wrapper">
+                            <div class="day-hours">
+                                <div class="day-name">Monday</div>
+                                <div class="hour-inputs">
+                                    <div class="form-group">
+                                        <label for="monday-open">Opening Time</label>
+                                        <input type="time" id="monday-open" name="monday-open" value="11:00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="monday-close">Closing Time</label>
+                                        <input type="time" id="monday-close" name="monday-close" value="22:00">
+                                    </div>
+                                    <div class="form-group checkbox">
+                                        <input type="checkbox" id="monday-closed" name="monday-closed">
+                                        <label for="monday-closed">Closed</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Repeat for other days of week -->
+                            <!-- Tuesday -->
+                            <div class="day-hours">
+                                <div class="day-name">Tuesday</div>
+                                <div class="hour-inputs">
+                                    <div class="form-group">
+                                        <label for="tuesday-open">Opening Time</label>
+                                        <input type="time" id="tuesday-open" name="tuesday-open" value="11:00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tuesday-close">Closing Time</label>
+                                        <input type="time" id="tuesday-close" name="tuesday-close" value="22:00">
+                                    </div>
+                                    <div class="form-group checkbox">
+                                        <input type="checkbox" id="tuesday-closed" name="tuesday-closed">
+                                        <label for="tuesday-closed">Closed</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Wednesday -->
+                            <div class="day-hours">
+                                <div class="day-name">Wednesday</div>
+                                <div class="hour-inputs">
+                                    <div class="form-group">
+                                        <label for="wednesday-open">Opening Time</label>
+                                        <input type="time" id="wednesday-open" name="wednesday-open" value="11:00">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="wednesday-close">Closing Time</label>
+                                        <input type="time" id="wednesday-close" name="wednesday-close" value="22:00">
+                                    </div>
+                                    <div class="form-group checkbox">
+                                        <input type="checkbox" id="wednesday-closed" name="wednesday-closed">
+                                        <label for="wednesday-closed">Closed</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Add similar sections for other days... -->
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="admin-btn primary">Save Hours</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Email Notifications Tab -->
+                <div class="settings-tab" id="email-tab">
+                    <h3>Email Notification Settings</h3>
+                    <form id="email-settings-form">
+                        <div class="form-group">
+                            <label for="email-service">Email Service</label>
+                            <select id="email-service" name="email-service">
+                                <option value="smtp">SMTP</option>
+                                <option value="sendgrid">SendGrid</option>
+                                <option value="mailchimp">Mailchimp</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="email-from">From Email</label>
+                            <input type="email" id="email-from" name="email-from" value="noreply@spicesymphony.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="email-from-name">From Name</label>
+                            <input type="text" id="email-from-name" name="email-from-name" value="Spice Symphony">
+                        </div>
+                        
+                        <h4>Notification Settings</h4>
+                        <div class="notification-settings">
+                            <div class="notification-option">
+                                <div class="form-group checkbox">
+                                    <input type="checkbox" id="notify-new-reservation" name="notify-new-reservation" checked>
+                                    <label for="notify-new-reservation">New Reservation</label>
+                                </div>
+                                <select id="notify-new-reservation-to" name="notify-new-reservation-to">
+                                    <option value="admin">Admin Only</option>
+                                    <option value="admin,staff">Admin & Staff</option>
+                                </select>
+                            </div>
+                            
+                            <div class="notification-option">
+                                <div class="form-group checkbox">
+                                    <input type="checkbox" id="notify-cancelled-reservation" name="notify-cancelled-reservation" checked>
+                                    <label for="notify-cancelled-reservation">Cancelled Reservation</label>
+                                </div>
+                                <select id="notify-cancelled-reservation-to" name="notify-cancelled-reservation-to">
+                                    <option value="admin">Admin Only</option>
+                                    <option value="admin,staff">Admin & Staff</option>
+                                </select>
+                            </div>
+                            
+                            <div class="notification-option">
+                                <div class="form-group checkbox">
+                                    <input type="checkbox" id="notify-new-order" name="notify-new-order" checked>
+                                    <label for="notify-new-order">New Order</label>
+                                </div>
+                                <select id="notify-new-order-to" name="notify-new-order-to">
+                                    <option value="admin">Admin Only</option>
+                                    <option value="admin,staff">Admin & Staff</option>
+                                </select>
+                            </div>
+                            
+                            <div class="notification-option">
+                                <div class="form-group checkbox">
+                                    <input type="checkbox" id="notify-new-user" name="notify-new-user" checked>
+                                    <label for="notify-new-user">New User Registration</label>
+                                </div>
+                                <select id="notify-new-user-to" name="notify-new-user-to">
+                                    <option value="admin">Admin Only</option>
+                                    <option value="admin,staff">Admin & Staff</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="admin-btn primary">Save Email Settings</button>
+                            <button type="button" class="admin-btn secondary" id="test-email-btn">Send Test Email</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- SEO Settings Tab -->
+                <div class="settings-tab" id="seo-tab">
+                    <h3>SEO Settings</h3>
+                    <form id="seo-settings-form">
+                        <div class="form-group">
+                            <label for="meta-title">Meta Title</label>
+                            <input type="text" id="meta-title" name="meta-title" value="Spice Symphony - Authentic Indian Cuisine">
+                        </div>
+                        <div class="form-group">
+                            <label for="meta-description">Meta Description</label>
+                            <textarea id="meta-description" name="meta-description">Experience authentic Indian cuisine and shop for spices and beverages at our tropical-themed restaurant.</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="meta-keywords">Meta Keywords</label>
+                            <input type="text" id="meta-keywords" name="meta-keywords" value="Indian restaurant, authentic Indian cuisine, vegetarian food, spices, Indian beverages, online reservation, Indian food delivery">
+                        </div>
+                        <div class="form-group">
+                            <label for="google-analytics">Google Analytics ID</label>
+                            <input type="text" id="google-analytics" name="google-analytics" placeholder="UA-XXXXXXXXX-X">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="admin-btn primary">Save SEO Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Modals for the different actions -->
+    
+    <!-- Add/Edit Reservation Modal -->
+    <div class="admin-modal" id="reservation-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="reservation-modal-title">Add New Reservation</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="reservation-form">
+                    <input type="hidden" id="reservation-id" name="reservation-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-reservation-date">Date</label>
+                            <input type="date" id="modal-reservation-date" name="modal-reservation-date" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-reservation-time">Time</label>
+                            <input type="time" id="modal-reservation-time" name="modal-reservation-time" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-reservation-name">Name</label>
+                            <input type="text" id="modal-reservation-name" name="modal-reservation-name" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-reservation-guests">Number of Guests</label>
+                            <input type="number" id="modal-reservation-guests" name="modal-reservation-guests" min="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-reservation-phone">Phone</label>
+                            <input type="tel" id="modal-reservation-phone" name="modal-reservation-phone" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-reservation-email">Email</label>
+                            <input type="email" id="modal-reservation-email" name="modal-reservation-email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-reservation-seating">Seating Preference</label>
+                            <select id="modal-reservation-seating" name="modal-reservation-seating" required>
+                                <option value="indoor">Indoor</option>
+                                <option value="outdoor">Outdoor</option>
+                                <option value="no-preference">No Preference</option>
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-reservation-status">Status</label>
+                            <select id="modal-reservation-status" name="modal-reservation-status" required>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="pending">Pending</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal-reservation-special-requests">Special Requests</label>
+                        <textarea id="modal-reservation-special-requests" name="modal-reservation-special-requests"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal-reservation-table">Assigned Table</label>
+                        <select id="modal-reservation-table" name="modal-reservation-table">
+                            <option value="">-- Select Table --</option>
+                            <!-- Tables will be loaded dynamically -->
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn secondary" id="reservation-modal-cancel">Cancel</button>
+                <button class="admin-btn primary" id="reservation-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Table Modal -->
+    <div class="admin-modal" id="table-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="table-modal-title">Add New Table</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="table-form">
+                    <input type="hidden" id="table-id" name="table-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-table-number">Table Number</label>
+                            <input type="text" id="modal-table-number" name="modal-table-number" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-table-capacity">Capacity</label>
+                            <input type="number" id="modal-table-capacity" name="modal-table-capacity" min="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-table-section">Section</label>
+                            <select id="modal-table-section" name="modal-table-section" required>
+                                <option value="indoor">Indoor</option>
+                                <option value="outdoor">Outdoor</option>
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-table-status">Status</label>
+                            <select id="modal-table-status" name="modal-table-status" required>
+                                <option value="available">Available</option>
+                                <option value="reserved">Reserved</option>
+                                <option value="occupied">Occupied</option>
+                                <option value="maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-table-x">X Coordinate</label>
+                            <input type="number" id="modal-table-x" name="modal-table-x" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-table-y">Y Coordinate</label>
+                            <input type="number" id="modal-table-y" name="modal-table-y" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn secondary" id="table-modal-cancel">Cancel</button>
+                <button class="admin-btn primary" id="table-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Menu Item Modal -->
+    <div class="admin-modal" id="menu-item-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="menu-item-modal-title">Add New Menu Item</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="menu-item-form">
+                    <input type="hidden" id="menu-item-id" name="menu-item-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-menu-item-name">Name</label>
+                            <input type="text" id="modal-menu-item-name" name="modal-menu-item-name" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-menu-item-price">Price (₹)</label>
+                            <input type="number" id="modal-menu-item-price" name="modal-menu-item-price" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal-menu-item-description">Description</label>
+                        <textarea id="modal-menu-item-description" name="modal-menu-item-description" required></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-menu-item-category">Category</label>
+                            <select id="modal-menu-item-category" name="modal-menu-item-category" required>
+                                <option value="appetizers">Appetizers</option>
+                                <option value="main-course">Main Course</option>
+                                <option value="desserts">Desserts</option>
+                                <option value="beverages">Beverages</option>
+                                <option value="street-food">Street Food</option>
+                                <option value="south-indian">South Indian</option>
+                                <option value="breads">Breads</option>
+                                <option value="rice-dishes">Rice Dishes</option>
+                            </select>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-menu-item-subcategory">Subcategory</label>
+                            <input type="text" id="modal-menu-item-subcategory" name="modal-menu-item-subcategory" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal-menu-item-image">Image</label>
+                        <div class="image-upload-wrapper">
+                            <div class="image-preview" id="image-preview">
+                                <img src="/images/placeholder.jpg" alt="Preview" id="preview-image">
+                            </div>
+                            <input type="file" id="modal-menu-item-image" name="modal-menu-item-image" accept="image/*">
+                            <button type="button" class="admin-btn secondary" id="upload-image-btn">Upload Image</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn secondary" id="menu-item-modal-cancel">Cancel</button>
+                <button class="admin-btn primary" id="menu-item-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit User Modal -->
+    <div class="admin-modal" id="user-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="user-modal-title">Add New User</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="user-form">
+                    <input type="hidden" id="user-id" name="user-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-user-first-name">First Name</label>
+                            <input type="text" id="modal-user-first-name" name="modal-user-first-name" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-user-last-name">Last Name</label>
+                            <input type="text" id="modal-user-last-name" name="modal-user-last-name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-user-email">Email</label>
+                            <input type="email" id="modal-user-email" name="modal-user-email" required>
+                        </div>
+                        <div class="form-group half">
+                            <label for="modal-user-phone">Phone</label>
+                            <input type="tel" id="modal-user-phone" name="modal-user-phone">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="modal-user-role">Role</label>
+                            <select id="modal-user-role" name="modal-user-role" required>
+                                <option value="customer">Customer</option>
+                                <option value="staff">Staff</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="form-group half" id="password-group">
+                            <label for="modal-user-password">Password</label>
+                            <input type="password" id="modal-user-password" name="modal-user-password">
+                            <div class="password-toggle" onclick="togglePasswordVisibility('modal-user-password')">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn secondary" id="user-modal-cancel">Cancel</button>
+                <button class="admin-btn primary" id="user-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div class="admin-modal" id="confirm-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirm-modal-title">Confirm Action</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-modal-message">Are you sure you want to perform this action?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn secondary" id="confirm-modal-cancel">Cancel</button>
+                <button class="admin-btn danger" id="confirm-modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container">
+        <!-- Toasts will be generated dynamically -->
+    </div>
+
+    <script src="/js/script.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>
