@@ -70,6 +70,27 @@ function authenticateAdmin(req, res, next) {
     });
 }
 
+// Middleware to check authentication and redirect accordingly
+function checkAuthAndRedirect(req, res, next) {
+    const token = req.cookies.token;
+    
+    if (!token) {
+        // No token, redirect to welcome page
+        return res.redirect('/welcome');
+    }
+    
+    jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
+        if (err) {
+            // Invalid token, clear it and redirect to welcome page
+            res.clearCookie('token');
+            return res.redirect('/welcome');
+        }
+        
+        req.user = user;
+        next();
+    });
+}
+
 // Helper function to round time to nearest slot
 function roundTimeToNearestSlot(timeString) {
     const time = new Date(`2000-01-01T${timeString}`);
@@ -88,18 +109,93 @@ function roundTimeToNearestSlot(timeString) {
 }
 
 // ==== PAGE ROUTES ====
-// Serve the index.html file when someone visits the root URL
+// Create a landing page route (shows login/register options)
+app.get('/welcome', (req, res) => {
+    // Check if user is already logged in
+    const token = req.cookies.token;
+    if (token) {
+        jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
+            if (!err) {
+                // User is already authenticated, redirect based on role
+                if (user.role === 'admin') {
+                    return res.redirect('/admin');
+                } else {
+                    return res.redirect('/dashboard');
+                }
+            }
+        });
+    }
+    
+    // User not authenticated, show landing page
+    res.sendFile(path.join(__dirname, 'views', 'login.html'));
+});
+
+// Root route - redirect to appropriate page based on authentication
 app.get('/', (req, res) => {
+    const token = req.cookies.token;
+    
+    if (!token) {
+        return res.redirect('/welcome');
+    }
+    
+    jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
+        if (err) {
+            res.clearCookie('token');
+            return res.redirect('/welcome');
+        }
+        
+        // User is authenticated, serve based on role
+        if (user.role === 'admin') {
+            return res.redirect('/admin');
+        } else {
+            return res.redirect('/dashboard');
+        }
+    });
+});
+
+// Main website (protected route for customers)
+app.get('/dashboard', checkAuthAndRedirect, (req, res) => {
+    if (req.user.role === 'admin') {
+        return res.redirect('/admin');
+    }
     res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
 // Serve login page
 app.get('/login', (req, res) => {
+    // Check if user is already logged in
+    const token = req.cookies.token;
+    if (token) {
+        jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
+            if (!err) {
+                // User is already authenticated, redirect based on role
+                if (user.role === 'admin') {
+                    return res.redirect('/admin');
+                } else {
+                    return res.redirect('/dashboard');
+                }
+            }
+        });
+    }
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
 // Serve register page
 app.get('/register', (req, res) => {
+    // Check if user is already logged in
+    const token = req.cookies.token;
+    if (token) {
+        jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
+            if (!err) {
+                // User is already authenticated, redirect based on role
+                if (user.role === 'admin') {
+                    return res.redirect('/admin');
+                } else {
+                    return res.redirect('/dashboard');
+                }
+            }
+        });
+    }
     res.sendFile(path.join(__dirname, 'views', 'register.html'));
 });
 
@@ -177,7 +273,11 @@ app.post('/api/auth/register', async (req, res) => {
                                     });
                                 }
                                 
-                                res.json({ success: true, message: 'Registration successful' });
+                                res.json({ 
+                                    success: true, 
+                                    message: 'Registration successful',
+                                    redirectTo: '/login'
+                                });
                             });
                         });
                     });
@@ -251,9 +351,13 @@ app.post('/api/auth/login', (req, res) => {
                 }
             );
             
+            // Determine redirect URL based on role
+            const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
+            
             res.json({
                 success: true,
                 message: 'Login successful',
+                redirectTo: redirectTo,
                 user: {
                     id: user.id,
                     email: user.email,
@@ -272,7 +376,7 @@ app.post('/api/auth/login', (req, res) => {
 // User logout endpoint
 app.post('/api/auth/logout', (req, res) => {
     res.clearCookie('token');
-    res.json({ success: true, message: 'Logout successful' });
+    res.json({ success: true, message: 'Logout successful', redirectTo: '/welcome' });
 });
 
 // ==== USER PROFILE API ENDPOINTS ====
@@ -755,365 +859,6 @@ app.get('/api/admin/stats/revenue/month', authenticateAdmin, (req, res) => {
     });
 });
 
-
-
-
-
-
-// Admin CRUD operations can be implemented here based on frontend requirements
-
-// Use environment variable for port
-const port = process.env.PORT || 3000; // Fallback to 3000 if PORT is not set
-app.listen(port, async () => {
-    console.log(`Server started on port ${port}`);
-
-    // Use dynamic import to load 'open'
-    try {
-        const open = (await import('open')).default;
-        await open(`http://localhost:${port}`);
-    } catch (error) {
-        console.log(`Server running at http://localhost:${port}, but couldn't open browser automatically.`);
-    }
-});
-
-// Add this middleware function after your existing middleware in server.js
-
-// Middleware to check if user is authenticated for protected routes
-function requireAuth(req, res, next) {
-    const token = req.cookies.token;
-    
-    if (!token) {
-        // No token, redirect to landing page
-        return res.redirect('/welcome');
-    }
-    
-    jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
-        if (err) {
-            // Invalid token, clear it and redirect to landing page
-            res.clearCookie('token');
-            return res.redirect('/welcome');
-        }
-        req.user = user;
-        next();
-    });
-}
-
-// Create a new landing page route (shows login/register options)
-app.get('/welcome', (req, res) => {
-    // Check if user is already logged in
-    const token = req.cookies.token;
-    if (token) {
-        jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
-            if (!err) {
-                // User is already authenticated, redirect to main site
-                return res.redirect('/dashboard');
-            }
-        });
-    }
-    
-    // User not authenticated, show landing page
-    res.sendFile(path.join(__dirname, 'views', 'welcome.html'));
-});
-
-// Protect the main index route
-app.get('/', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'index.html'));
-});
-
-// Alternative: Create a dashboard route (protected main page)
-app.get('/dashboard', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'index.html'));
-});
-
-// Modify existing login and register routes to be accessible without auth
-app.get('/login', (req, res) => {
-    // Check if user is already logged in
-    const token = req.cookies.token;
-    if (token) {
-        jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
-            if (!err) {
-                // User is already authenticated, redirect to main site
-                return res.redirect('/dashboard');
-            }
-        });
-    }
-    res.sendFile(path.join(__dirname, 'views', 'login.html'));
-});
-
-app.get('/register', (req, res) => {
-    // Check if user is already logged in
-    const token = req.cookies.token;
-    if (token) {
-        jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret', (err, user) => {
-            if (!err) {
-                // User is already authenticated, redirect to main site
-                return res.redirect('/dashboard');
-            }
-        });
-    }
-    res.sendFile(path.join(__dirname, 'views', 'register.html'));
-});
-
-// Modify the login API endpoint to redirect after successful login
-app.post('/api/auth/login', (req, res) => {
-    try {
-        const { email, password } = req.body;
-        
-        // Find user by email
-        const findUserQuery = 'SELECT * FROM users WHERE email = ?';
-        db.query(findUserQuery, [email], async (err, results) => {
-            if (err) {
-                console.error('Error finding user:', err);
-                return res.status(500).json({ success: false, message: 'Login failed' });
-            }
-            
-            if (results.length === 0) {
-                return res.status(401).json({ success: false, message: 'Invalid email or password' });
-            }
-            
-            const user = results[0];
-            
-            // Compare password
-            const passwordMatch = await bcrypt.compare(password, user.password);
-            if (!passwordMatch) {
-                return res.status(401).json({ success: false, message: 'Invalid email or password' });
-            }
-            
-            // Update last login time
-            db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
-            
-            // Generate JWT token
-            const token = jwt.sign(
-                { userId: user.id, email: user.email, role: user.role },
-                process.env.JWT_SECRET || 'spice_symphony_jwt_secret',
-                { expiresIn: '24h' }
-            );
-            
-            // Set cookie
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                maxAge: 24 * 60 * 60 * 1000 // 24 hours
-            });
-            
-            // Create session
-            const sessionId = require('crypto').randomBytes(16).toString('hex');
-            const sessionExpiry = new Date(new Date().getTime() + 24 * 60 * 60 * 1000); // 24 hours
-            
-            db.query(
-                'INSERT INTO user_sessions (id, user_id, expires, data) VALUES (?, ?, ?, ?)',
-                [sessionId, user.id, sessionExpiry, JSON.stringify({ lastActive: new Date() })],
-                (err) => {
-                    if (err) {
-                        console.error('Error creating session:', err);
-                    }
-                }
-            );
-            
-            res.json({
-                success: true,
-                message: 'Login successful',
-                redirectTo: user.role === 'admin' ? '/admin' : '/dashboard', // Add redirect URL
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.first_name,
-                    lastName: user.last_name,
-                    role: user.role
-                }
-            });
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ success: false, message: 'Login failed' });
-    }
-});
-
-// Modify register endpoint similarly
-app.post('/api/auth/register', async (req, res) => {
-    try {
-        const { email, password, firstName, lastName, phone } = req.body;
-        
-        // Check if user already exists
-        const userExistsQuery = 'SELECT * FROM users WHERE email = ?';
-        db.query(userExistsQuery, [email], async (err, results) => {
-            if (err) {
-                console.error('Error checking existing user:', err);
-                return res.status(500).json({ success: false, message: 'Registration failed' });
-            }
-            
-            if (results.length > 0) {
-                return res.status(400).json({ success: false, message: 'Email already registered' });
-            }
-            
-            // Hash password
-            const hashedPassword = await bcrypt.hash(password, 10);
-            
-            // Begin transaction
-            db.beginTransaction(async (err) => {
-                if (err) {
-                    console.error('Error starting transaction:', err);
-                    return res.status(500).json({ success: false, message: 'Registration failed' });
-                }
-                
-                try {
-                    // Insert new user
-                    const insertUserQuery = `
-                        INSERT INTO users (email, password, first_name, last_name, phone)
-                        VALUES (?, ?, ?, ?, ?)
-                    `;
-                    
-                    db.query(insertUserQuery, [email, hashedPassword, firstName, lastName, phone], (err, result) => {
-                        if (err) {
-                            return db.rollback(() => {
-                                console.error('Error registering user:', err);
-                                res.status(500).json({ success: false, message: 'Registration failed' });
-                            });
-                        }
-                        
-                        // Create empty profile for the user
-                        const userId = result.insertId;
-                        const createProfileQuery = 'INSERT INTO user_profiles (user_id) VALUES (?)';
-                        
-                        db.query(createProfileQuery, [userId], (err) => {
-                            if (err) {
-                                return db.rollback(() => {
-                                    console.error('Error creating user profile:', err);
-                                    res.status(500).json({ success: false, message: 'Registration failed' });
-                                });
-                            }
-                            
-                            // Commit transaction
-                            db.commit((err) => {
-                                if (err) {
-                                    return db.rollback(() => {
-                                        console.error('Error committing transaction:', err);
-                                        res.status(500).json({ success: false, message: 'Registration failed' });
-                                    });
-                                }
-                                
-                                res.json({ 
-                                    success: true, 
-                                    message: 'Registration successful',
-                                    redirectTo: '/login' // Redirect to login after registration
-                                });
-                            });
-                        });
-                    });
-                } catch (error) {
-                    db.rollback(() => {
-                        console.error('Registration error in transaction:', error);
-                        res.status(500).json({ success: false, message: 'Registration failed' });
-                    });
-                }
-            });
-        });
-    } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ success: false, message: 'Registration failed' });
-    }
-});
-
-
-
-// Track user activity endpoint
-// REPLACE your existing /api/track-activity endpoint in server.js with this improved version:
-
-// Track user activity endpoint with better error handling
-app.post('/api/track-activity', (req, res) => {
-    const { activityType, sessionId, details } = req.body;
-    const userId = req.user ? req.user.userId : null;
-    const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.get('User-Agent') || '';
-    
-    // Validate required fields
-    if (!activityType || !sessionId) {
-        return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
-    
-    // Truncate long activity types to fit database constraints
-    const truncatedActivityType = activityType.substring(0, 50);
-    
-    // Ensure details is valid JSON string
-    let detailsJson;
-    try {
-        detailsJson = typeof details === 'string' ? details : JSON.stringify(details || {});
-        // Truncate if too long (MySQL TEXT limit is ~65,535 characters)
-        if (detailsJson.length > 60000) {
-            detailsJson = JSON.stringify({ 
-                ...JSON.parse(detailsJson.substring(0, 30000)), 
-                _truncated: true 
-            });
-        }
-    } catch (e) {
-        detailsJson = JSON.stringify({ error: 'Invalid details format' });
-    }
-    
-    const query = `
-        INSERT INTO user_activity_log (user_id, session_id, activity_type, activity_details, ip_address, user_agent)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `;
-    
-    db.query(query, [userId, sessionId, truncatedActivityType, detailsJson, ip, userAgent], (err, result) => {
-        if (err) {
-            // Log error but don't fail the request (activity tracking should be non-blocking)
-            console.error('Error tracking activity:', {
-                error: err.message,
-                activityType: truncatedActivityType,
-                userId: userId,
-                sessionId: sessionId
-            });
-            
-            // Still return success to avoid breaking the frontend
-            return res.json({ success: true, message: 'Activity logged (with warnings)' });
-        }
-        
-        res.json({ success: true, activityId: result.insertId });
-    });
-});
-
-// Enhanced analytics endpoints
-app.get('/api/admin/analytics/today', authenticateAdmin, (req, res) => {
-    // Return today's detailed analytics
-});
-
-app.get('/api/admin/analytics/week', authenticateAdmin, (req, res) => {
-    // Return week's analytics with customer activity patterns
-});
-
-app.get('/api/admin/analytics/popular-items', authenticateAdmin, (req, res) => {
-    // Return most popular menu items and products
-});
-
-app.get('/api/admin/analytics/customer-insights', authenticateAdmin, (req, res) => {
-    // Return customer behavior insights
-});
-
-// Activity tracking
-app.post('/api/track-activity', (req, res) => {
-    // Track user activity in user_activity_log table
-});
-
-app.get('/api/admin/activity/new-since', authenticateAdmin, (req, res) => {
-    // Get new activities since last check
-});
-
-// Notifications
-app.get('/api/admin/notifications', authenticateAdmin, (req, res) => {
-    // Get pending admin notifications
-});
-
-// Backup/restore
-app.post('/api/admin/backup/create', authenticateAdmin, (req, res) => {
-    // Create database backup
-});
-
-app.post('/api/admin/backup/restore', authenticateAdmin, (req, res) => {
-    // Restore from backup file
-});
-
-// ADD THESE MISSING ADMIN API ENDPOINTS TO YOUR server.js FILE
-
 // ==== ADMIN RESERVATIONS MANAGEMENT ====
 // Get all reservations with pagination and filtering
 app.get('/api/admin/reservations', authenticateAdmin, (req, res) => {
@@ -1262,7 +1007,6 @@ app.get('/api/admin/orders', authenticateAdmin, (req, res) => {
     const limit = 10;
     const offset = (page - 1) * limit;
     const date = req.query.date;
-    const type = req.query.type;
     const search = req.query.search;
     
     let whereConditions = [];
@@ -1866,4 +1610,74 @@ app.post('/api/admin/settings/general', authenticateAdmin, (req, res) => {
     // This would save to a settings table - you'll need to create this table
     // For now, just return success
     res.json({ success: true, message: 'General settings saved successfully' });
+});
+
+// ==== ACTIVITY TRACKING ====
+// Track user activity endpoint with better error handling
+app.post('/api/track-activity', (req, res) => {
+    const { activityType, sessionId, details } = req.body;
+    const userId = req.user ? req.user.userId : null;
+    const ip = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent') || '';
+    
+    // Validate required fields
+    if (!activityType || !sessionId) {
+        return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+    
+    // Truncate long activity types to fit database constraints
+    const truncatedActivityType = activityType.substring(0, 50);
+    
+    // Ensure details is valid JSON string
+    let detailsJson;
+    try {
+        detailsJson = typeof details === 'string' ? details : JSON.stringify(details || {});
+        // Truncate if too long (MySQL TEXT limit is ~65,535 characters)
+        if (detailsJson.length > 60000) {
+            detailsJson = JSON.stringify({ 
+                ...JSON.parse(detailsJson.substring(0, 30000)), 
+                _truncated: true 
+            });
+        }
+    } catch (e) {
+        detailsJson = JSON.stringify({ error: 'Invalid details format' });
+    }
+    
+    const query = `
+        INSERT INTO user_activity_log (user_id, session_id, activity_type, activity_details, ip_address, user_agent)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.query(query, [userId, sessionId, truncatedActivityType, detailsJson, ip, userAgent], (err, result) => {
+        if (err) {
+            // Log error but don't fail the request (activity tracking should be non-blocking)
+            console.error('Error tracking activity:', {
+                error: err.message,
+                activityType: truncatedActivityType,
+                userId: userId,
+                sessionId: sessionId
+            });
+            
+            // Still return success to avoid breaking the frontend
+            return res.json({ success: true, message: 'Activity logged (with warnings)' });
+        }
+        
+        res.json({ success: true, activityId: result.insertId });
+    });
+});
+
+// ==== START SERVER ====
+// Use environment variable for port
+const port = process.env.PORT || 3000; // Fallback to 3000 if PORT is not set
+app.listen(port, async () => {
+    console.log(`Server started on port ${port}`);
+    console.log('🚀 Opening welcome page...');
+
+    // Use dynamic import to load 'open' and redirect to welcome page
+    try {
+        const open = (await import('open')).default;
+        await open(`http://localhost:${port}/welcome`); // Open welcome page instead of home
+    } catch (error) {
+        console.log(`Server running at http://localhost:${port}/welcome, but couldn't open browser automatically.`);
+    }
 });

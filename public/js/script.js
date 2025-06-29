@@ -41,6 +41,7 @@ function toggleMenu() {
     highlightNav();
 });
 
+
 // Function to shuffle the images
 function shuffleImages() {
     const imageGrid = document.querySelector('.about-image-grid');
@@ -1403,4 +1404,3 @@ window.addEventListener('error', function(e) {
         page: window.location.pathname
     });
 });
-

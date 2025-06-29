@@ -29,8 +29,13 @@
                     <!-- Add after your existing navigation links -->
                     <li class="login-link"><a href="/login"><i class="fa fa-sign-in-alt"></i> Login</a></li>
                     <li class="register-link"><a href="/register"><i class="fa fa-user-plus"></i> Register</a></li>
-                    <li class="profile-link" style="display:none;"><a href="/profile"><i class="fa fa-user"></i> My Profile</a></li>
-                    <li class="logout-link" style="display:none;"><a href="#" id="logoutBtn"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
+                    <li class="profile-link" style="display:none;">
+                        <a href="/profile"><i class="fa fa-user"></i> My Profile</a>
+                    </li>
+                    <li class="logout-link" style="display:none;" id="logoutBtn">
+                        <a href="#"><i class="fa fa-sign-out-alt"></i> Logout</a>
+                    </li>
+
                     <li class="admin-link" style="display:none;"><a href="/admin"><i class="fa fa-cog"></i> Admin</a></li>
                 </ul>
             </nav>
@@ -158,42 +163,39 @@
 
     <!-- Menu Section -->
     <section id="menu" class="animate__animated animate__fadeIn">
-    <!-- Sidebar for Filters -->
-    <div class="sidebar">
-        <div class="filters">
-            <input type="text" id="search" placeholder="Search for dishes..." class="search-bar">
-            <h3>Filter by Category</h3>
-            <ul class="category-filters">
-                <li><a href="#" data-category="all" class="filter-link active">All</a></li>
-                <li><a href="#" data-category="appetizers" class="filter-link">Appetizers</a></li>
-                <li><a href="#" data-category="main-course" class="filter-link">Main Course</a></li>
-                <li><a href="#" data-category="desserts" class="filter-link">Desserts</a></li>
-                <li><a href="#" data-category="beverages" class="filter-link">Beverages</a></li>
-                <li><a href="#" data-category="street-food" class="filter-link">Street-Food</a></li>
-                <li><a href="#" data-category="south-indian" class="filter-link">South-Indian</a></li>
-                <li><a href="#" data-category="breads" class="filter-link">Breads</a></li>
-                <li><a href="#" data-category="rice-dishes" class="filter-link">Rice-Dishes</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <div class="container">
-            <h2>Our Menu</h2>
-            <p>Welcome to our restaurant! We offer a variety of delicious dishes made with the finest ingredients. Enjoy our flavorful appetizers, main courses, and desserts, all prepared with love and care. Explore the menu below!</p>
-
-            <!-- Welcome Message (Visible initially) -->
-            <div id="welcome-message" class="welcome-message">
-                <p>Use the filters to explore our premium Food.</p>
-            </div>
-
-            <!-- Menu Categories will be dynamically inserted here -->
-            <div class="menu-categories" id="menu-categories">
-                <!-- Menu items will be dynamically inserted here -->
-            </div>
-
-            <!-- Cart Section -->
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container">
+                <h2>Our Menu</h2>
+                <p>Welcome to our restaurant! …</p>
+                <!-- Welcome Message (Visible initially) -->
+                <div id="welcome-message" class="welcome-message">
+                    <p>Use the filters to explore our premium Food.</p>
+                </div>
+                <!-- Collapsible Accordion Filters -->
+                <div class="filter-accordion">
+                    <div class="accordion-content">
+                        <div class="filters">
+                            <input type="text" id="search" placeholder="Search for dishes..." class="search-bar">
+                            <h3>Filter by Category</h3>
+                            <ul class="category-filters">
+                                <li><a href="#" data-category="all" class="filter-link active">All</a></li>    
+                                <li><a href="#" data-category="appetizers" class="filter-link">Appetizers</a></li>
+                                <li><a href="#" data-category="main-course" class="filter-link">Main Course</a></li>
+                                <li><a href="#" data-category="desserts" class="filter-link">Desserts</a></li>
+                                <li><a href="#" data-category="beverages" class="filter-link">Beverages</a></li>
+                                <li><a href="#" data-category="street-food" class="filter-link">Street‑Food</a></li>
+                                <li><a href="#" data-category="south-indian" class="filter-link">South‑Indian</a></li>
+                                <li><a href="#" data-category="breads" class="filter-link">Breads</a></li>
+                                <li><a href="#" data-category="rice-dishes" class="filter-link">Rice‑Dishes</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <!-- Menu Categories will be dynamically inserted here -->
+                <div class="menu-categories" id="menu-categories"></div>
+                <!-- Cart, Modals, Favorites… (unchanged) -->
+                 <!-- Cart Section -->
 <div id="cart">
     <h3>Cart</h3>
     <div id="cart-items"></div>
@@ -239,12 +241,13 @@
             </div>
         </div>
     </div>
+            </div>
+        </div>
     </section>
 
-
     <!-- Reservation Section -->
-<section id="reservation" class="ir-reservation-section">
-    <div class="ir-container">
+    <section id="reservation" class="ir-reservation-section">
+        <div class="ir-container">
         <h2 class="ir-section-title">Reserve a Table</h2>
         <p class="ir-section-description">
             Plan your dining experience with us. Fill out the form below to book your table effortlessly. 
@@ -421,10 +424,10 @@
             <button id="printReceiptButton" class="ir-button">Print Receipt</button>
         </div>
     </div>
-</section>
-    
-    
-    
+
+
+    </section>
+
     <!-- Shop Section -->
     <section id="shop">   
         <div class="container">
@@ -448,8 +451,8 @@
           <div class="product-grid"></div>
         </div>
     </section>
-        <!-- Cart Section in the second section -->
-        <section id="shop-cart">
+    <!-- Cart Section in the second section -->
+    <section id="shop-cart">
             <h2>Your Cart</h2>
             <div id="shop-cart-items">
                 <!-- Cart items will appear here -->
@@ -461,7 +464,7 @@
                 <input type="text" id="shop-promo-code" placeholder="Enter promo code">
                 <button id="shop-apply-promo-btn">Apply Promo</button>
                 <button id="shop-checkout-btn">Proceed to Checkout</button>
-        </section> 
+    </section> 
 
     <section id="testimonials" class="testimonials-section">
         <div class="container">
