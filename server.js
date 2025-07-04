@@ -25,15 +25,47 @@ db.connect((err) => {
         process.exit(1);
     }
     console.log('MySQL connected...');
+    
+    // Create activity tracking table if it doesn't exist
+    createActivityTrackingTable();
 });
+
+// Create activity tracking table
+function createActivityTrackingTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NULL,
+            session_id VARCHAR(255) NOT NULL,
+            activity_type VARCHAR(100) NOT NULL,
+            activity_details TEXT,
+            ip_address VARCHAR(45),
+            user_agent TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id),
+            INDEX idx_session_id (session_id),
+            INDEX idx_activity_type (activity_type),
+            INDEX idx_created_at (created_at),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating activity tracking table:', err);
+        } else {
+            console.log('Activity tracking table ready');
+        }
+    });
+}
 
 // ==== MIDDLEWARE ====
 // Middleware to serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware to parse JSON and URL-encoded form data
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Use cookie parser middleware
 app.use(cookieParser());
@@ -45,6 +77,13 @@ app.use(session({
     saveUninitialized: true,
     cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 } // 24 hours
 }));
+
+// Middleware to capture IP address properly
+app.use((req, res, next) => {
+    req.ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || 
+             (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    next();
+});
 
 // ==== AUTHENTICATION MIDDLEWARE ====
 function authenticateToken(req, res, next) {
@@ -215,6 +254,11 @@ app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password, firstName, lastName, phone } = req.body;
         
+        // Validate required fields
+        if (!email || !password || !firstName || !lastName) {
+            return res.status(400).json({ success: false, message: 'All required fields must be provided' });
+        }
+        
         // Check if user already exists
         const userExistsQuery = 'SELECT * FROM users WHERE email = ?';
         db.query(userExistsQuery, [email], async (err, results) => {
@@ -244,7 +288,7 @@ app.post('/api/auth/register', async (req, res) => {
                         VALUES (?, ?, ?, ?, ?)
                     `;
                     
-                    db.query(insertUserQuery, [email, hashedPassword, firstName, lastName, phone], (err, result) => {
+                    db.query(insertUserQuery, [email, hashedPassword, firstName, lastName, phone || null], (err, result) => {
                         if (err) {
                             return db.rollback(() => {
                                 console.error('Error registering user:', err);
@@ -273,6 +317,7 @@ app.post('/api/auth/register', async (req, res) => {
                                     });
                                 }
                                 
+                                console.log('User registered successfully:', userId);
                                 res.json({ 
                                     success: true, 
                                     message: 'Registration successful',
@@ -299,6 +344,10 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', (req, res) => {
     try {
         const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
         
         // Find user by email
         const findUserQuery = 'SELECT * FROM users WHERE email = ?';
@@ -354,6 +403,7 @@ app.post('/api/auth/login', (req, res) => {
             // Determine redirect URL based on role
             const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
             
+            console.log('User logged in successfully:', user.id);
             res.json({
                 success: true,
                 message: 'Login successful',
@@ -510,9 +560,11 @@ app.get('/api/user/reservations', authenticateToken, (req, res) => {
     const userId = req.user.userId;
     
     const query = `
-        SELECT * FROM reservations 
-        WHERE user_id = ? 
-        ORDER BY date DESC, time DESC
+        SELECT r.*, t.table_number
+        FROM reservations r 
+        LEFT JOIN restaurant_tables t ON r.table_id = t.id
+        WHERE r.user_id = ? 
+        ORDER BY r.date DESC, r.time DESC
     `;
     
     db.query(query, [userId], (err, results) => {
@@ -545,10 +597,95 @@ app.get('/api/user/orders', authenticateToken, (req, res) => {
     });
 });
 
+// Cancel reservation
+app.delete('/api/reservation/:id', authenticateToken, (req, res) => {
+    const reservationId = req.params.id;
+    const userId = req.user.userId;
+    
+    // Verify the reservation belongs to the user
+    const verifyQuery = 'SELECT * FROM reservations WHERE id = ? AND user_id = ?';
+    db.query(verifyQuery, [reservationId, userId], (err, results) => {
+        if (err) {
+            console.error('Error verifying reservation:', err);
+            return res.status(500).json({ success: false, message: 'Failed to cancel reservation' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ success: false, message: 'Reservation not found or not authorized' });
+        }
+        
+        // Begin transaction to cancel reservation and update table availability
+        db.beginTransaction((err) => {
+            if (err) {
+                console.error('Error starting transaction:', err);
+                return res.status(500).json({ success: false, message: 'Failed to cancel reservation' });
+            }
+            
+            // Update reservation status to cancelled
+            const updateReservationQuery = 'UPDATE reservations SET status = ? WHERE id = ?';
+            db.query(updateReservationQuery, ['cancelled', reservationId], (err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        console.error('Error updating reservation status:', err);
+                        res.status(500).json({ success: false, message: 'Failed to cancel reservation' });
+                    });
+                }
+                
+                // Update table availability if table was assigned
+                if (results[0].table_id) {
+                    const updateAvailabilityQuery = `
+                        UPDATE table_availability 
+                        SET is_available = TRUE, reservation_id = NULL 
+                        WHERE table_id = ? AND date = ? AND time_slot = ? AND reservation_id = ?
+                    `;
+                    
+                    db.query(updateAvailabilityQuery, [
+                        results[0].table_id, 
+                        results[0].date, 
+                        results[0].time, 
+                        reservationId
+                    ], (err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                console.error('Error updating table availability:', err);
+                                res.status(500).json({ success: false, message: 'Failed to cancel reservation' });
+                            });
+                        }
+                        
+                        // Commit transaction
+                        db.commit((err) => {
+                            if (err) {
+                                return db.rollback(() => {
+                                    console.error('Error committing transaction:', err);
+                                    res.status(500).json({ success: false, message: 'Failed to cancel reservation' });
+                                });
+                            }
+                            
+                            res.json({ success: true, message: 'Reservation cancelled successfully' });
+                        });
+                    });
+                } else {
+                    // No table assigned, just commit
+                    db.commit((err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                console.error('Error committing transaction:', err);
+                                res.status(500).json({ success: false, message: 'Failed to cancel reservation' });
+                            });
+                        }
+                        
+                        res.json({ success: true, message: 'Reservation cancelled successfully' });
+                    });
+                }
+            });
+        });
+    });
+});
+
 // ==== MENU API ENDPOINTS ====
 // API endpoint to fetch menu items
 app.get('/api/menu', (req, res) => {
-    let sql = 'SELECT * FROM menu_items';
+    let sql = 'SELECT * FROM menu_items ORDER BY category, subcategory, name';
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Error fetching menu items:', err);
@@ -574,7 +711,7 @@ app.get('/api/menu', (req, res) => {
 // ==== TABLES API ENDPOINTS ====
 // API endpoint to get all restaurant tables
 app.get('/api/tables', (req, res) => {
-    let sql = 'SELECT * FROM restaurant_tables';
+    let sql = 'SELECT * FROM restaurant_tables ORDER BY section, table_number';
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Error fetching tables:', err);
@@ -592,6 +729,17 @@ app.get('/api/tables/availability', (req, res) => {
         return res.status(400).json({ success: false, message: 'Date, time, and number of guests are required.' });
     }
     
+    // Validate date format
+    if (isNaN(new Date(date))) {
+        return res.status(400).json({ success: false, message: 'Invalid date format.' });
+    }
+    
+    // Validate guests is a number
+    const guestCount = parseInt(guests);
+    if (isNaN(guestCount) || guestCount < 1) {
+        return res.status(400).json({ success: false, message: 'Invalid number of guests.' });
+    }
+    
     // Round time to nearest hour or half-hour
     const roundedTime = roundTimeToNearestSlot(time);
     
@@ -601,20 +749,22 @@ app.get('/api/tables/availability', (req, res) => {
         FROM restaurant_tables t
         LEFT JOIN table_availability a ON t.id = a.table_id AND a.date = ? AND a.time_slot = ?
         WHERE t.capacity >= ? AND (a.is_available = TRUE OR a.id IS NULL) AND t.status = 'available'
-        ORDER BY t.capacity ASC
+        ORDER BY t.capacity ASC, t.section, t.table_number
     `;
     
-    db.query(query, [date, roundedTime, parseInt(guests)], (err, results) => {
+    db.query(query, [date, roundedTime, guestCount], (err, results) => {
         if (err) {
             console.error('Error checking table availability:', err);
             return res.status(500).json({ success: false, message: 'Failed to check availability.' });
         }
         
+        console.log(`Found ${results.length} available tables for ${guestCount} guests on ${date} at ${roundedTime}`);
+        
         res.json({
             success: true,
             date,
             time: roundedTime,
-            guests: parseInt(guests),
+            guests: guestCount,
             availableTables: results
         });
     });
@@ -624,11 +774,36 @@ app.get('/api/tables/availability', (req, res) => {
 // API endpoint to handle reservation form submission
 app.post('/api/reservation', (req, res) => {
     const { date, time, guests, name, contact, email, seating, specialRequests, confirmationMethod, tableId } = req.body;
-    const userId = req.user ? req.user.userId : null; // If using authentication middleware
+    
+    // Get user ID if authenticated, otherwise null
+    let userId = null;
+    const token = req.cookies.token;
+    
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret');
+            userId = decoded.userId;
+        } catch (error) {
+            // Token invalid, but continue with reservation as guest
+            console.log('Invalid token for reservation, proceeding as guest');
+        }
+    }
 
     // Validate required fields
     if (!date || !time || !guests || !name || !contact || !email || !seating || !confirmationMethod) {
-        return res.status(400).json({ success: false, message: 'All fields are required.' });
+        return res.status(400).json({ success: false, message: 'All required fields must be provided.' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ success: false, message: 'Invalid email format.' });
+    }
+
+    // Validate guest count
+    const guestCount = parseInt(guests);
+    if (isNaN(guestCount) || guestCount < 1 || guestCount > 20) {
+        return res.status(400).json({ success: false, message: 'Invalid number of guests.' });
     }
 
     // Start a database transaction
@@ -640,10 +815,10 @@ app.post('/api/reservation', (req, res) => {
 
         // Insert reservation into the database
         const insertReservationSql = `
-            INSERT INTO reservations (date, time, guests, name, contact, email, seating, special_requests, confirmation_method, user_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO reservations (date, time, guests, name, contact, email, seating, special_requests, confirmation_method, user_id, table_id, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')
         `;
-        const reservationValues = [date, time, guests, name, contact, email, seating, specialRequests, confirmationMethod, userId];
+        const reservationValues = [date, time, guestCount, name, contact, email, seating, specialRequests || null, confirmationMethod, userId, tableId || null];
 
         db.query(insertReservationSql, reservationValues, (err, result) => {
             if (err) {
@@ -657,13 +832,14 @@ app.post('/api/reservation', (req, res) => {
 
             // If a specific table was selected, update table availability
             if (tableId) {
+                const roundedTime = roundTimeToNearestSlot(time);
                 const updateTableSql = `
                     INSERT INTO table_availability (table_id, date, time_slot, is_available, reservation_id)
                     VALUES (?, ?, ?, FALSE, ?)
                     ON DUPLICATE KEY UPDATE is_available = FALSE, reservation_id = ?
                 `;
                 
-                db.query(updateTableSql, [tableId, date, time, reservationId, reservationId], (err) => {
+                db.query(updateTableSql, [tableId, date, roundedTime, reservationId, reservationId], (err) => {
                     if (err) {
                         return db.rollback(() => {
                             console.error('Error updating table availability:', err);
@@ -680,7 +856,7 @@ app.post('/api/reservation', (req, res) => {
                             });
                         }
 
-                        console.log('Reservation submitted successfully:', result);
+                        console.log('Reservation submitted successfully:', reservationId);
                         res.json({ success: true, message: 'Reservation submitted successfully!', reservationId });
                     });
                 });
@@ -694,7 +870,7 @@ app.post('/api/reservation', (req, res) => {
                         });
                     }
 
-                    console.log('Reservation submitted successfully:', result);
+                    console.log('Reservation submitted successfully:', reservationId);
                     res.json({ success: true, message: 'Reservation submitted successfully!', reservationId });
                 });
             }
@@ -705,7 +881,7 @@ app.post('/api/reservation', (req, res) => {
 // ==== TESTIMONIALS API ENDPOINTS ====
 // API endpoint to fetch testimonials
 app.get('/api/testimonials', (req, res) => {
-    let sql = 'SELECT * FROM testimonials';
+    let sql = 'SELECT * FROM testimonials ORDER BY created_at DESC';
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Error fetching testimonials:', err);
@@ -725,8 +901,18 @@ app.post('/api/testimonials', (req, res) => {
     }
 
     // Ensure rating is a number
-    if (isNaN(rating) || rating < 1 || rating > 5) {
+    const ratingNum = parseInt(rating);
+    if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
         return res.status(400).json({ success: false, message: 'Rating must be a number between 1 and 5.' });
+    }
+
+    // Validate text fields length
+    if (name.length > 255 || role.length > 255) {
+        return res.status(400).json({ success: false, message: 'Name and role must be less than 255 characters.' });
+    }
+
+    if (review.length > 1000) {
+        return res.status(400).json({ success: false, message: 'Review must be less than 1000 characters.' });
     }
 
     // Insert review into the database
@@ -734,7 +920,7 @@ app.post('/api/testimonials', (req, res) => {
         INSERT INTO testimonials (name, role, rating, review)
         VALUES (?, ?, ?, ?)
     `;
-    const values = [name, role, parseInt(rating), review]; // Ensure rating is an integer
+    const values = [name, role, ratingNum, review];
 
     db.query(sql, values, (err, result) => {
         if (err) {
@@ -742,7 +928,7 @@ app.post('/api/testimonials', (req, res) => {
             return res.status(500).json({ success: false, message: 'Failed to submit review.' });
         }
 
-        console.log('Review submitted successfully:', result);
+        console.log('Review submitted successfully:', result.insertId);
         res.json({ success: true, message: 'Review submitted successfully!' });
     });
 });
@@ -750,25 +936,93 @@ app.post('/api/testimonials', (req, res) => {
 // ==== PRODUCTS API ENDPOINTS ====
 // API endpoint to fetch products
 app.get('/api/products', (req, res) => {
-    let sql = 'SELECT * FROM products'; // Query to fetch all products
+    let sql = 'SELECT * FROM products ORDER BY category, name';
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Error fetching products:', err);
             return res.status(500).json({ success: false, message: 'Failed to fetch products.' });
         }
-        res.json(results); // Send the product data as JSON
+        res.json(results);
     });
 });
 
-// ==== ORDERS API ENDPOINTS ====
-// API endpoint to submit orders
+// ==== ENHANCED ORDERS API ENDPOINTS ====
+// API endpoint to submit orders (enhanced with better validation and error handling)
 app.post('/api/orders', (req, res) => {
     const { name, tableNumber, specialRequests, items, total } = req.body;
-    const userId = req.user ? req.user.userId : null;
+    
+    console.log('Received order request:', { name, tableNumber, specialRequests, items, total });
+    
+    // Get user ID if authenticated, otherwise null
+    let userId = null;
+    const token = req.cookies.token;
+    
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'spice_symphony_jwt_secret');
+            userId = decoded.userId;
+            console.log('Authenticated user placing order:', userId);
+        } catch (error) {
+            // Token invalid, but continue with order as guest
+            console.log('Invalid token for order, proceeding as guest');
+        }
+    }
 
-    // Validate required fields
-    if (!name || !tableNumber || !items || !total) {
-        return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    // Enhanced validation
+    if (!name || !tableNumber || !items || total === undefined || total === null) {
+        console.error('Missing required fields for order:', { name, tableNumber, items, total });
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Missing required fields. Please provide name, table number, items, and total.' 
+        });
+    }
+
+    // Validate name and table number
+    if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid name provided.' 
+        });
+    }
+
+    if (typeof tableNumber !== 'string' || tableNumber.trim().length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid table number provided.' 
+        });
+    }
+
+    // Validate total amount
+    const totalAmount = parseFloat(total);
+    if (isNaN(totalAmount) || totalAmount < 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid total amount.' 
+        });
+    }
+
+    // Validate items
+    if (typeof items !== 'string' || items.trim().length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Invalid items provided.' 
+        });
+    }
+
+    // Validate field lengths
+    if (name.length > 255 || tableNumber.length > 50) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Name or table number too long.' 
+        });
+    }
+
+    // Validate special requests length if provided
+    if (specialRequests && specialRequests.length > 1000) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Special requests too long.' 
+        });
     }
 
     const query = `
@@ -776,12 +1030,45 @@ app.post('/api/orders', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?)
     `;
 
-    db.query(query, [name, tableNumber, specialRequests, items, total, userId], (err, result) => {
+    console.log('Inserting order with values:', [name.trim(), tableNumber.trim(), specialRequests?.trim() || null, items.trim(), totalAmount, userId]);
+
+    db.query(query, [name.trim(), tableNumber.trim(), specialRequests?.trim() || null, items.trim(), totalAmount, userId], (err, result) => {
         if (err) {
             console.error('Error inserting order:', err);
-            return res.status(500).json({ success: false, message: 'Failed to submit order.' });
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Failed to submit order. Please try again.' 
+            });
         }
-        res.json({ success: true, orderId: result.insertId });
+        
+        console.log('Order submitted successfully:', result.insertId);
+        res.json({ 
+            success: true, 
+            message: 'Order submitted successfully!',
+            orderId: result.insertId 
+        });
+    });
+});
+
+// Reorder items from previous order
+app.post('/api/orders/:id/reorder', authenticateToken, (req, res) => {
+    const orderId = req.params.id;
+    const userId = req.user.userId;
+    
+    // Get the original order
+    const getOrderQuery = 'SELECT * FROM orders WHERE id = ? AND user_id = ?';
+    db.query(getOrderQuery, [orderId, userId], (err, results) => {
+        if (err) {
+            console.error('Error getting order for reorder:', err);
+            return res.status(500).json({ success: false, message: 'Failed to reorder items' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ success: false, message: 'Order not found or not authorized' });
+        }
+        
+        // For now, just return success (you can implement cart addition logic here)
+        res.json({ success: true, message: 'Items would be added to cart' });
     });
 });
 
@@ -1134,12 +1421,17 @@ app.get('/api/admin/tables/:id', authenticateAdmin, (req, res) => {
 app.post('/api/admin/tables', authenticateAdmin, (req, res) => {
     const { tableNumber, capacity, section, status, coordinatesX, coordinatesY } = req.body;
     
+    // Validate required fields
+    if (!tableNumber || !capacity || !section || !status) {
+        return res.status(400).json({ success: false, message: 'All required fields must be provided' });
+    }
+    
     const query = `
         INSERT INTO restaurant_tables (table_number, capacity, section, status, coordinates_x, coordinates_y)
         VALUES (?, ?, ?, ?, ?, ?)
     `;
     
-    db.query(query, [tableNumber, capacity, section, status, coordinatesX, coordinatesY], (err, result) => {
+    db.query(query, [tableNumber, capacity, section, status, coordinatesX || 0, coordinatesY || 0], (err, result) => {
         if (err) {
             console.error('Error adding table:', err);
             return res.status(500).json({ success: false, message: 'Failed to add table' });
@@ -1268,6 +1560,11 @@ app.get('/api/admin/menu/:id', authenticateAdmin, (req, res) => {
 // Add new menu item
 app.post('/api/admin/menu', authenticateAdmin, (req, res) => {
     const { name, description, price, category, subcategory, image } = req.body;
+    
+    // Validate required fields
+    if (!name || !description || !price || !category || !subcategory) {
+        return res.status(400).json({ success: false, message: 'All required fields must be provided' });
+    }
     
     const query = `
         INSERT INTO menu_items (name, description, price, category, subcategory, image)
@@ -1414,6 +1711,11 @@ app.get('/api/admin/users/:id', authenticateAdmin, (req, res) => {
 app.post('/api/admin/users', authenticateAdmin, async (req, res) => {
     const { firstName, lastName, email, phone, role, password } = req.body;
     
+    // Validate required fields
+    if (!firstName || !lastName || !email || !role || !password) {
+        return res.status(400).json({ success: false, message: 'All required fields must be provided' });
+    }
+    
     try {
         // Check if user already exists
         db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
@@ -1434,7 +1736,7 @@ app.post('/api/admin/users', authenticateAdmin, async (req, res) => {
                 VALUES (?, ?, ?, ?, ?, ?)
             `;
             
-            db.query(query, [firstName, lastName, email, phone, role, hashedPassword], (err, result) => {
+            db.query(query, [firstName, lastName, email, phone || null, role, hashedPassword], (err, result) => {
                 if (err) {
                     console.error('Error adding user:', err);
                     return res.status(500).json({ success: false, message: 'Failed to add user' });
@@ -1612,7 +1914,7 @@ app.post('/api/admin/settings/general', authenticateAdmin, (req, res) => {
     res.json({ success: true, message: 'General settings saved successfully' });
 });
 
-// ==== ACTIVITY TRACKING ====
+// ==== ENHANCED ACTIVITY TRACKING ====
 // Track user activity endpoint with better error handling
 app.post('/api/track-activity', (req, res) => {
     const { activityType, sessionId, details } = req.body;
@@ -1666,18 +1968,33 @@ app.post('/api/track-activity', (req, res) => {
     });
 });
 
+// ==== ERROR HANDLING MIDDLEWARE ====
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+});
+
+// Handle 404 routes
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'Route not found' });
+});
+
 // ==== START SERVER ====
 // Use environment variable for port
-const port = process.env.PORT || 3000; // Fallback to 3000 if PORT is not set
+const port = process.env.PORT || 3000;
 app.listen(port, async () => {
-    console.log(`Server started on port ${port}`);
-    console.log('🚀 Opening welcome page...');
+    console.log(`🚀 Server started on port ${port}`);
+    console.log(`📍 Restaurant website available at:`);
+    console.log(`   - Main site: http://localhost:${port}/welcome`);
+    console.log(`   - Admin panel: http://localhost:${port}/admin`);
+    console.log(`   - Customer dashboard: http://localhost:${port}/dashboard`);
 
     // Use dynamic import to load 'open' and redirect to welcome page
     try {
         const open = (await import('open')).default;
-        await open(`http://localhost:${port}/welcome`); // Open welcome page instead of home
+        await open(`http://localhost:${port}/welcome`);
     } catch (error) {
-        console.log(`Server running at http://localhost:${port}/welcome, but couldn't open browser automatically.`);
+        console.log(`⚠️  Could not open browser automatically. Please visit: http://localhost:${port}/welcome`);
     }
 });

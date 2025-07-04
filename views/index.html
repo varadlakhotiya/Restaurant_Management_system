@@ -136,9 +136,9 @@
                     <div class="about-awards">
                         <h3>Awards & Recognitions</h3>
                         <ul>
-                            <li><strong>Best Indian Restaurant 2023</strong> - [Awarding Organization]</li>
-                            <li><strong>Top 10 Restaurants in Aurangabad</strong> - [Magazine/Website]</li>
-                            <li><strong>Excellence in Culinary Innovation</strong> - [Culinary Association]</li>
+                            <li><strong>Best Restaurant in Auranagabd 2023</strong> </li>
+                            <li><strong>Top 10 Restaurants in Aurangabad</strong> - Aurangabad Times</li>
+                            <li><strong>Excellence in Culinary Innovation</strong> - Aurangabad Times</li>
                         </ul>
                         <p>We are proud to be recognized for our dedication to quality and innovation.</p>
                     </div>
@@ -196,49 +196,110 @@
                 <div class="menu-categories" id="menu-categories"></div>
                 <!-- Cart, Modals, Favorites… (unchanged) -->
                  <!-- Cart Section -->
-<div id="cart">
-    <h3>Cart</h3>
-    <div id="cart-items"></div>
-    <div id="cart-total"></div>
-    <button id="clear-cart">Clear Cart</button>
-    <button id="order-now">Order Now</button> <!-- Order Now Button -->
-</div>
-
-<!-- Popup Form for User Confirmation -->
-<div id="order-confirmation-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Confirm Your Order</h3>
-        <form id="order-form">
-            <label for="name">Your Name:</label>
-            <input type="text" id="name" name="name" required>
-
-            <label for="table-number">Table Number:</label>
-            <input type="text" id="table-number" name="table-number" required>
-
-            <label for="special-requests">Special Requests:</label>
-            <textarea id="special-requests" name="special-requests"></textarea>
-
-            <button type="submit">Confirm Order</button>
-        </form>
+<!-- Enhanced Cart Section (replace existing cart section) -->
+ <div id="cart">
+    <div class="cart-header">
+        <h3><i class="fas fa-shopping-cart"></i> Your Order</h3>
+        <button id="toggle-cart" class="btn-icon" title="Toggle cart">
+            <i class="fas fa-chevron-up"></i>
+        </button>
+    </div>
+    
+    <div class="cart-body">
+        <div id="cart-items">
+            <div class="empty-cart-message">Your cart is empty.</div>
+        </div>
+        
+        <div id="cart-total" class="cart-total"></div>
+        
+        <div class="cart-actions">
+            <button id="clear-cart" class="btn-secondary">
+                <i class="fas fa-trash"></i> Clear Cart
+            </button>
+            <button id="order-now" class="btn-primary">
+                <i class="fas fa-utensils"></i> Order Now
+            </button>
+        </div>
     </div>
 </div>
 
-<!-- Receipt Section -->
-<div id="receipt" class="modal">
+<!-- Enhanced Order Confirmation Modal (replace existing modal) -->
+<div id="order-confirmation-modal" class="modal" style="display: none;">
     <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Order Receipt</h3>
-        <div id="receipt-content"></div>
+        <div class="modal-header">
+            <h3>Confirm Your Order</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="order-form">
+                <div class="form-group">
+                    <label for="name">Your Name: <span class="required">*</span></label>
+                    <input type="text" id="name" name="name" required placeholder="Enter your full name">
+                </div>
+
+                <div class="form-group">
+                    <label for="table-number">Table Number: <span class="required">*</span></label>
+                    <input type="text" id="table-number" name="table-number" required placeholder="Enter table number (e.g., A1, B5)">
+                </div>
+
+                <div class="form-group">
+                    <label for="special-requests">Special Requests:</label>
+                    <textarea id="special-requests" name="special-requests" placeholder="Any special dietary requirements or cooking preferences..." rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <div id="order-summary" class="order-summary">
+                        <h4><i class="fas fa-receipt"></i> Order Summary:</h4>
+                        <div id="order-items-list" class="order-items-list"></div>
+                        <div id="order-total-display" class="order-total-display"></div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('order-confirmation-modal').style.display='none'">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-check"></i> Confirm Order
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-            
 
-            <!-- Favorites Section -->
-            <div id="favorites">
-                <h3>Favorites</h3>
-                <div id="favorites-list"></div>
+<!-- Enhanced Receipt Modal (replace existing receipt modal) -->
+<div id="receipt" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-receipt"></i> Order Receipt</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="receipt-content" class="receipt-content">
+                <!-- Receipt content will be populated by JavaScript -->
             </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Receipt
+                </button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('receipt').style.display='none'">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Favorites Section Enhancement (if you want to improve it) -->
+<div id="favorites">
+    <div class="favorites-header">
+        <h3><i class="fas fa-heart"></i> Favorites</h3>
+    </div>
+    <div id="favorites-list" class="favorites-list">
+        <!-- Favorite items will appear here -->
+    </div>
+</div>
         </div>
     </div>
             </div>
@@ -409,20 +470,34 @@
         </div>
 
         <!-- Receipt Section -->
-        <div id="receipt" class="ir-receipt hidden">
+        <div id="reservation-receipt" class="ir-receipt hidden">
+    
             <h2>Reservation Receipt</h2>
+    
             <p><strong>Date:</strong> <span id="receiptDate"></span></p>
+    
             <p><strong>Time:</strong> <span id="receiptTime"></span></p>
+    
             <p><strong>Guests:</strong> <span id="receiptGuests"></span></p>
+    
             <p><strong>Name:</strong> <span id="receiptName"></span></p>
+    
             <p><strong>Contact:</strong> <span id="receiptContact"></span></p>
+    
             <p><strong>Email:</strong> <span id="receiptEmail"></span></p>
+    
             <p><strong>Seating:</strong> <span id="receiptSeating"></span></p>
+    
             <p><strong>Special Requests:</strong> <span id="receiptSpecialRequests"></span></p>
+    
             <p><strong>Confirmation Method:</strong> <span id="receiptConfirmationMethod"></span></p>
+    
             <p><strong>Selected Table:</strong> <span id="receiptTable"></span></p>
+    
             <button id="printReceiptButton" class="ir-button">Print Receipt</button>
+
         </div>
+
     </div>
 
 
@@ -452,19 +527,66 @@
         </div>
     </section>
     <!-- Cart Section in the second section -->
+    <!-- Enhanced Shop Cart Section (replace existing shop cart) -->
+
     <section id="shop-cart">
-            <h2>Your Cart</h2>
-            <div id="shop-cart-items">
-                <!-- Cart items will appear here -->
-                </div>
-                <div id="shop-cart-summary">
-                    <p>Subtotal: ₹<span id="shop-subtotal">0.00</span></p>
-                    <p>Total: ₹<span id="shop-total">0.00</span></p>
-                </div>
-                <input type="text" id="shop-promo-code" placeholder="Enter promo code">
-                <button id="shop-apply-promo-btn">Apply Promo</button>
-                <button id="shop-checkout-btn">Proceed to Checkout</button>
-    </section> 
+    <div class="shop-cart-header">
+        <h2><i class="fas fa-shopping-bag"></i> Your Shopping Cart</h2>
+    </div>
+    
+    <div id="shop-cart-items" class="shop-cart-items">
+        <!-- Cart items will appear here -->
+    </div>
+    
+    <div id="shop-cart-summary" class="shop-cart-summary">
+        <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>₹<span id="shop-subtotal">0.00</span></span>
+        </div>
+        <div class="summary-row total-row">
+            <span><strong>Total:</strong></span>
+            <span><strong>₹<span id="shop-total">0.00</span></strong></span>
+        </div>
+    </div>
+    
+    <div class="shop-cart-actions">
+        <div class="promo-section">
+            <input type="text" id="shop-promo-code" placeholder="Enter promo code" class="promo-input">
+            <button id="shop-apply-promo-btn" class="btn-secondary">
+                <i class="fas fa-tag"></i> Apply
+            </button>
+        </div>
+        
+        <button id="shop-checkout-btn" class="btn-primary checkout-btn">
+            <i class="fas fa-credit-card"></i> Proceed to Checkout
+        </button>
+    </div>
+
+    <!-- Enhanced Shop Order Receipt Modal -->
+<div id="shop-receipt-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-shopping-bag"></i> Shop Order Receipt</h3>
+            <span class="close" onclick="document.getElementById('shop-receipt-modal').style.display='none'">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="shop-receipt-content" class="receipt-content">
+                <!-- Shop receipt content will be populated by JavaScript -->
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Receipt
+                </button>
+                <button type="button" class="btn-secondary" onclick="document.getElementById('shop-receipt-modal').style.display='none'">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+
 
     <section id="testimonials" class="testimonials-section">
         <div class="container">

@@ -1,4 +1,13 @@
 {
+  "name": "restaurant-management-system",
+  "version": "1.0.0",
+  "description": "Spice Symphony Restaurant Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'No build step required'"
+  },
   "dependencies": {
     "bcrypt": "^5.1.1",
     "body-parser": "^2.2.0",
@@ -8,9 +17,17 @@
     "express-session": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
     "mysql": "^2.18.1",
-    "open": "^10.1.1",
-     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "build": "echo 'No build step required'"
-  }
+    "open": "^10.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "restaurant",
+    "management",
+    "nodejs",
+    "mysql"
+  ],
+  "author": "Varad Lakhotiya",
+  "license": "MIT"
 }

@@ -4,7 +4,7 @@ function toggleMenu() {
     nav.classList.toggle('active');
 }
 
-  document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     // Collect all navigation links
     const navLinks = document.querySelectorAll('nav ul li a');
     
@@ -41,10 +41,11 @@ function toggleMenu() {
     highlightNav();
 });
 
-
 // Function to shuffle the images
 function shuffleImages() {
     const imageGrid = document.querySelector('.about-image-grid');
+    if (!imageGrid) return;
+    
     const images = Array.from(imageGrid.querySelectorAll('img')); // Convert NodeList to Array
 
     // Shuffle the array of images
@@ -59,46 +60,68 @@ function shuffleImages() {
 // Shuffle images every 5 seconds (or any interval you prefer)
 setInterval(shuffleImages, 1000);
 
-
-
-
-
-
-
 // Global Arrays
 let cart = [];
 let favorites = [];
 
-// -----------------------------------------------------
-// Utility Functions
-// -----------------------------------------------------
+// ========================================
+// ENHANCED CART FUNCTIONALITY
+// ========================================
+
+// Enhanced Cart Display Function
 function updateCartDisplay() {
     const cartItems = document.getElementById('cart-items');
-    const cartElement = document.getElementById('cart'); // Get the cart element
+    const cartElement = document.getElementById('cart');
+    const cartTotal = document.getElementById('cart-total');
 
-    if (cartItems) {
-        // Update the cart items display
+    if (cartItems && cartElement) {
         if (cart.length > 0) {
-            cartItems.innerHTML = cart.map(item => `
-                <div class="cart-item">
-                    <span>${item.name}</span>
-                    <span>${item.price}</span>
+            cartItems.innerHTML = cart.map((item, index) => `
+                <div class="cart-item" data-index="${index}">
+                    <span class="item-name">${item.name}</span>
+                    <span class="item-price">${item.price}</span>
+                    <button class="remove-item" onclick="removeFromCart(${index})" title="Remove item">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             `).join('');
+            
+            // Calculate and display total
+            if (cartTotal) {
+                const total = cart.reduce((sum, item) => {
+                    const price = parseFloat(item.price.replace('Rs.', '').replace('₹', ''));
+                    return sum + price;
+                }, 0);
+                cartTotal.innerHTML = `<strong>Total: ₹${total.toFixed(2)}</strong>`;
+            }
         } else {
-            // Display a message when the cart is empty
             cartItems.innerHTML = `<div class="empty-cart-message">Your cart is empty.</div>`;
+            if (cartTotal) cartTotal.innerHTML = '';
         }
 
-        // Update the cart total (if needed)
-        const cartTotal = document.getElementById('cart-total');
-        if (cartTotal) {
-            const total = cart.reduce((sum, item) => sum + parseFloat(item.price.replace('Rs.', '')), 0);
-            cartTotal.textContent = `Total: Rs.${total.toFixed(2)}`;
-        }
-
-        // Always show the cart, regardless of whether it has items
+        // Always show the cart
         cartElement.classList.add('visible');
+        console.log('Cart updated. Items count:', cart.length);
+    } else {
+        console.error('Cart elements not found');
+    }
+}
+
+// Enhanced cart functionality with error handling
+function removeFromCart(index) {
+    try {
+        if (index >= 0 && index < cart.length) {
+            const removedItem = cart.splice(index, 1)[0];
+            updateCartDisplay();
+            console.log('Removed item from cart:', removedItem);
+            showNotification(`Removed ${removedItem.name} from cart`, 'info');
+        }
+    } catch (error) {
+        console.error('Error removing from cart:', error);
+        // Force restore scrolling on error
+        document.body.style.overflow = 'auto';
+        document.body.style.position = '';
+        document.body.style.width = '';
     }
 }
 
@@ -113,98 +136,257 @@ function updateFavoritesDisplay() {
     }
 }
 
-// -----------------------------------------------------
-// Menu Section Initialization
-// -----------------------------------------------------
-function initializeMenuEventListeners() {
-    // Menu Filters and Search
-    const menuContainer = document.getElementById('menu');
-    if (!menuContainer) return;
+// Enhanced form validation
+function validateOrderForm() {
+    const name = document.getElementById('name');
+    const tableNumber = document.getElementById('table-number');
+    
+    let isValid = true;
+    let errorMessage = '';
+    
+    if (!name || !name.value.trim()) {
+        errorMessage += 'Name is required.\n';
+        isValid = false;
+    }
+    
+    if (!tableNumber || !tableNumber.value.trim()) {
+        errorMessage += 'Table number is required.\n';
+        isValid = false;
+    } else if (!/^[A-Za-z]?\d+$/.test(tableNumber.value.trim())) {
+        errorMessage += 'Please enter a valid table number (e.g., A1, B5, 10).\n';
+        isValid = false;
+    }
+    
+    if (cart.length === 0) {
+        errorMessage += 'Please add items to your cart before ordering.\n';
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        showNotification(errorMessage.trim(), 'error');
+    }
+    
+    return isValid;
+}
 
-    // Filter functionality (using menu-specific filter links)
+// Enhanced cart toggle functionality
+function initializeCartToggle() {
+    const toggleCartBtn = document.getElementById('toggle-cart');
+    const cartBody = document.querySelector('#cart .cart-body');
+    const toggleIcon = toggleCartBtn ? toggleCartBtn.querySelector('i') : null;
+    
+    if (toggleCartBtn && cartBody) {
+        toggleCartBtn.addEventListener('click', () => {
+            const isVisible = cartBody.style.display !== 'none';
+            
+            if (isVisible) {
+                cartBody.style.display = 'none';
+                if (toggleIcon) toggleIcon.className = 'fas fa-chevron-down';
+            } else {
+                cartBody.style.display = 'block';
+                if (toggleIcon) toggleIcon.className = 'fas fa-chevron-up';
+            }
+        });
+    }
+}
+
+// Format currency
+function formatCurrency(amount) {
+    return `₹${parseFloat(amount).toFixed(2)}`;
+}
+
+// Debounce function for search inputs
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Enhanced error handling for API calls
+async function apiCall(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            ...options,
+            credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        }
+        
+        return data;
+    } catch (error) {
+        console.error(`API call failed for ${url}:`, error);
+        throw error;
+    }
+}
+
+// ========================================
+// ENHANCED MENU FUNCTIONALITY
+// ========================================
+
+// Enhanced menu item event listeners with better error handling
+function initializeMenuEventListeners() {
+    const menuContainer = document.getElementById('menu');
+    if (!menuContainer) {
+        console.error('Menu container not found');
+        return;
+    }
+
+    // Filter functionality
     const menuFilterLinks = menuContainer.querySelectorAll('.filters .filter-link');
     menuFilterLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            const category = link.getAttribute('data-category').toLowerCase();
+            
+            try {
+                const category = link.getAttribute('data-category').toLowerCase();
 
-            // Remove active class from all links and add to the clicked one
-            menuFilterLinks.forEach(lnk => lnk.classList.remove('active'));
-            link.classList.add('active');
+                // Remove active class from all links and add to the clicked one
+                menuFilterLinks.forEach(lnk => lnk.classList.remove('active'));
+                link.classList.add('active');
 
-            // Hide the welcome message
-            const welcomeMessage = menuContainer.querySelector('.welcome-message');
-            if (welcomeMessage) {
-                welcomeMessage.style.display = 'none';
+                // Hide the welcome message
+                const welcomeMessage = menuContainer.querySelector('.welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.style.display = 'none';
+                }
+
+                // Filter menu items
+                const subcategoryGroups = menuContainer.querySelectorAll('.subcategory-group');
+                if (subcategoryGroups.length > 0) {
+                    subcategoryGroups.forEach(group => {
+                        if (category === 'all' || group.getAttribute('data-category') === category) {
+                            group.style.display = 'block';
+                        } else {
+                            group.style.display = 'none';
+                        }
+                    });
+                } else {
+                    const menuItems = menuContainer.querySelectorAll('.menu-card');
+                    menuItems.forEach(item => {
+                        const itemCategory = item.getAttribute('data-category').toLowerCase();
+                        if (category === 'all' || itemCategory === category) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                }
+                
+                console.log('Menu filtered by category:', category);
+            } catch (error) {
+                console.error('Error filtering menu:', error);
+                showNotification('Error filtering menu items', 'error');
             }
+        });
+    });
 
-            // For menu items in dynamic groups (if rendered as subcategory groups)
-            const subcategoryGroups = menuContainer.querySelectorAll('.subcategory-group');
-            if (subcategoryGroups.length > 0) {
-                subcategoryGroups.forEach(group => {
-                    if (category === 'all' || group.getAttribute('data-category') === category) {
-                        group.style.display = 'block';
-                    } else {
-                        group.style.display = 'none';
-                    }
-                });
-            } else {
-                // Fallback for simple menu cards (if no subcategory grouping)
+    // Enhanced search functionality
+    const searchBar = menuContainer.querySelector('#search');
+    if (searchBar) {
+        const debouncedSearch = debounce((searchTerm) => {
+            try {
                 const menuItems = menuContainer.querySelectorAll('.menu-card');
+                let visibleCount = 0;
+                
                 menuItems.forEach(item => {
-                    const itemCategory = item.getAttribute('data-category').toLowerCase();
-                    if (category === 'all' || itemCategory === category) {
+                    const itemName = item.querySelector('h4') ? item.querySelector('h4').textContent.toLowerCase() : '';
+                    const itemDescription = item.querySelector('p') ? item.querySelector('p').textContent.toLowerCase() : '';
+                    
+                    if (itemName.includes(searchTerm) || itemDescription.includes(searchTerm)) {
                         item.style.display = 'block';
+                        visibleCount++;
                     } else {
                         item.style.display = 'none';
                     }
                 });
-            }
-        });
-    });
-
-    // Search functionality for menu items
-    const searchBar = menuContainer.querySelector('#search');
-    if (searchBar) {
-        searchBar.addEventListener('input', () => {
-            const searchTerm = searchBar.value.toLowerCase();
-            const menuItems = menuContainer.querySelectorAll('.menu-card');
-            menuItems.forEach(item => {
-                const itemName = item.querySelector('h4').textContent.toLowerCase();
-                if (itemName.includes(searchTerm)) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
+                
+                // Show search results feedback
+                if (searchTerm && visibleCount === 0) {
+                    showNotification('No menu items found matching your search', 'warning');
                 }
-            });
+                
+                console.log('Search completed:', searchTerm, 'Results:', visibleCount);
+            } catch (error) {
+                console.error('Error searching menu:', error);
+                showNotification('Error searching menu items', 'error');
+            }
+        }, 300);
+        
+        searchBar.addEventListener('input', (e) => {
+            debouncedSearch(e.target.value.toLowerCase());
         });
     }
 
-    // Add-to-cart functionality for menu items
-    const menuAddToCartButtons = menuContainer.querySelectorAll('.add-to-cart');
-    menuAddToCartButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const itemName = button.parentElement.querySelector('h4').textContent;
-            const itemPrice = button.parentElement.querySelector('span').textContent;
-            cart.push({ name: itemName, price: itemPrice });
-            updateCartDisplay();
-            alert(`Added ${itemName} (${itemPrice}) to cart!`);
-        });
-    });
-
-    // Favorite button functionality for menu items
-    const favoriteButtons = menuContainer.querySelectorAll('.favorite-button');
-    favoriteButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // Identify the item name from the card (assumes <h4> holds the name)
-            const itemName = button.parentElement.querySelector('h4').textContent;
-            if (favorites.includes(itemName)) {
-                favorites = favorites.filter(name => name !== itemName);
-            } else {
-                favorites.push(itemName);
+    // Enhanced add-to-cart functionality
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('add-to-cart')) {
+            try {
+                const menuCard = e.target.closest('.menu-card');
+                if (!menuCard) return;
+                
+                const itemName = menuCard.querySelector('h4') ? menuCard.querySelector('h4').textContent : 'Unknown Item';
+                const itemPriceElement = menuCard.querySelector('span');
+                const itemPrice = itemPriceElement ? itemPriceElement.textContent : '₹0';
+                
+                // Add to cart
+                cart.push({ name: itemName, price: itemPrice });
+                updateCartDisplay();
+                
+                // Visual feedback
+                const button = e.target;
+                const originalText = button.textContent;
+                button.textContent = 'Added!';
+                button.style.backgroundColor = '#4caf50';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '';
+                }, 1000);
+                
+                showNotification(`Added ${itemName} to cart!`, 'success');
+                console.log('Added to cart:', itemName, itemPrice);
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showNotification('Error adding item to cart', 'error');
             }
-            updateFavoritesDisplay();
-        });
+        }
+        
+        // Enhanced favorite button functionality
+        if (e.target.classList.contains('favorite-button')) {
+            try {
+                const menuCard = e.target.closest('.menu-card');
+                if (!menuCard) return;
+                
+                const itemName = menuCard.querySelector('h4') ? menuCard.querySelector('h4').textContent : 'Unknown Item';
+                const button = e.target;
+                
+                if (favorites.includes(itemName)) {
+                    favorites = favorites.filter(name => name !== itemName);
+                    button.style.color = '';
+                    showNotification(`Removed ${itemName} from favorites`, 'info');
+                } else {
+                    favorites.push(itemName);
+                    button.style.color = '#ff4444';
+                    showNotification(`Added ${itemName} to favorites!`, 'success');
+                }
+                
+                updateFavoritesDisplay();
+                console.log('Favorites updated:', favorites);
+            } catch (error) {
+                console.error('Error updating favorites:', error);
+                showNotification('Error updating favorites', 'error');
+            }
+        }
     });
 }
 
@@ -212,6 +394,7 @@ function initializeMenuEventListeners() {
 function fetchAndRenderMenuItems() {
     const menuCategories = document.getElementById('menu-categories');
     if (!menuCategories) return;
+    
     fetch('/api/menu')
         .then(response => response.json())
         .then(data => {
@@ -250,7 +433,7 @@ function fetchAndRenderMenuItems() {
                         itemDetails.innerHTML = `
                             <h4>${item.name}</h4>
                             <p>${item.description}</p>
-                            <span>Rs.${item.price}</span>
+                            <span>₹${item.price}</span>
                         `;
                         card.appendChild(itemDetails);
 
@@ -275,52 +458,20 @@ function fetchAndRenderMenuItems() {
             // After menu items are rendered, initialize event listeners for menu
             initializeMenuEventListeners();
         })
-        .catch(error => console.error('Error fetching menu items:', error));
+        .catch(error => {
+            console.error('Error fetching menu items:', error);
+            showNotification('Failed to load menu items', 'error');
+        });
 }
 
-// -----------------------------------------------------
-// Sidebar and Page Layout (Menu Section)
-// -----------------------------------------------------
-function initializeSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    const mainContent = document.querySelector('.main-content');
-    const menuSection = document.getElementById('menu');
-    const reservationSection = document.getElementById('reservation'); // Ensure this exists or adjust accordingly
+// ========================================
+// ENHANCED ORDER FUNCTIONALITY
+// ========================================
 
-    function toggleSidebar() {
-        if (!menuSection || !sidebar || !mainContent) return;
-        const menuSectionRect = menuSection.getBoundingClientRect();
-        let reservationSectionRect;
-        if (reservationSection) {
-            reservationSectionRect = reservationSection.getBoundingClientRect();
-        }
+// ========================================
+// FIXED ORDER FUNCTIONALITY
+// ========================================
 
-        // Check if the menu section is in the viewport
-        if (menuSectionRect.top <= 0 && menuSectionRect.bottom >= 0) {
-            sidebar.classList.add('visible');
-            mainContent.classList.add('shifted');
-
-            if (reservationSectionRect) {
-                // Calculate the height of the sidebar
-                const sidebarHeight = reservationSectionRect.top - menuSectionRect.top;
-                sidebar.style.height = `${sidebarHeight}px`;
-            }
-
-            // Set top position (relative to menu section)
-            sidebar.style.top = `0`;
-        } else {
-            sidebar.classList.remove('visible');
-            mainContent.classList.remove('shifted');
-        }
-    }
-
-    window.addEventListener('scroll', toggleSidebar);
-    toggleSidebar();
-}
-
-// -----------------------------------------------------
-// Order Confirmation and Receipt Modal (Menu Section)
-// -----------------------------------------------------
 function initializeOrderFunctionality() {
     const orderNowButton = document.getElementById('order-now');
     const orderConfirmationModal = document.getElementById('order-confirmation-modal');
@@ -328,44 +479,114 @@ function initializeOrderFunctionality() {
     const receiptModal = document.getElementById('receipt');
     const receiptContent = document.getElementById('receipt-content');
 
+    console.log('Initializing order functionality...');
+    console.log('Order button found:', !!orderNowButton);
+    console.log('Order modal found:', !!orderConfirmationModal);
+    console.log('Receipt modal found:', !!receiptModal);
+
     // Open order confirmation modal
     if (orderNowButton) {
-        orderNowButton.addEventListener('click', () => {
+        orderNowButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Order Now clicked, cart:', cart);
+            
             if (cart.length === 0) {
-                alert('Your cart is empty!');
+                showNotification('Your cart is empty! Please add some items before ordering.', 'warning');
                 return;
             }
-            orderConfirmationModal.style.display = 'block';
+            
+            // Update order summary before showing modal
+            updateOrderSummary();
+            
+            if (orderConfirmationModal) {
+                showModal(orderConfirmationModal);
+                console.log('Order modal opened');
+            } else {
+                console.error('Order confirmation modal not found');
+                showNotification('Error: Order form not available. Please refresh the page.', 'error');
+            }
         });
+    } else {
+        console.error('Order Now button not found');
     }
 
-    // Close modals when clicking the close buttons
-    document.querySelectorAll('.close').forEach(closeButton => {
-        closeButton.addEventListener('click', () => {
-            orderConfirmationModal.style.display = 'none';
-            receiptModal.style.display = 'none';
-        });
-    });
+    // Function to update order summary in modal
+    function updateOrderSummary() {
+        const orderItemsList = document.getElementById('order-items-list');
+        const orderTotalDisplay = document.getElementById('order-total-display');
+        
+        if (orderItemsList && cart.length > 0) {
+            orderItemsList.innerHTML = cart.map(item => `
+                <div class="order-summary-item">
+                    <span>${item.name}</span>
+                    <span>${item.price}</span>
+                </div>
+            `).join('');
+        }
+        
+        if (orderTotalDisplay) {
+            const total = cart.reduce((sum, item) => {
+                const price = parseFloat(item.price.replace('Rs.', '').replace('₹', ''));
+                return sum + price;
+            }, 0);
+            orderTotalDisplay.innerHTML = `<strong>Total: ₹${total.toFixed(2)}</strong>`;
+        }
+    }
 
-    // Submit order form
+    // Enhanced order form submission
     if (orderForm) {
         orderForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            const name = document.getElementById('name').value;
-            const tableNumber = document.getElementById('table-number').value;
-            const specialRequests = document.getElementById('special-requests').value;
+            console.log('Order form submitted');
+            
+            // Get form values with enhanced error checking
+            const nameField = document.getElementById('name');
+            const tableNumberField = document.getElementById('table-number');
+            const specialRequestsField = document.getElementById('special-requests');
+            
+            if (!nameField || !tableNumberField) {
+                showNotification('Required form fields not found. Please refresh the page and try again.', 'error');
+                return;
+            }
+            
+            const name = nameField.value.trim();
+            const tableNumber = tableNumberField.value.trim();
+            const specialRequests = specialRequestsField ? specialRequestsField.value.trim() : '';
 
-            // Format items for display
+            // Enhanced validation
+            if (!name || !tableNumber) {
+                showNotification('Please fill in all required fields (Name and Table Number).', 'error');
+                return;
+            }
+
+            if (cart.length === 0) {
+                showNotification('Your cart is empty. Please add items before ordering.', 'error');
+                return;
+            }
+
+            // Format items for display and calculate total
             const formattedItems = cart.map(item => `${item.name} - ${item.price}`).join(', ');
+            const total = cart.reduce((sum, item) => {
+                const price = parseFloat(item.price.replace('Rs.', '').replace('₹', ''));
+                return sum + price;
+            }, 0);
 
             // Prepare order data
-            const order = {
-                name,
-                tableNumber,
-                specialRequests,
+            const orderData = {
+                name: name,
+                tableNumber: tableNumber,
+                specialRequests: specialRequests,
                 items: formattedItems,
-                total: cart.reduce((sum, item) => sum + parseFloat(item.price.replace('Rs.', '')), 0).toFixed(2),
+                total: total.toFixed(2),
             };
+
+            console.log('Sending order data:', orderData);
+
+            // Show loading state
+            const submitButton = orderForm.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Placing Order...';
+            submitButton.disabled = true;
 
             // Send order to server
             fetch('/api/orders', {
@@ -373,59 +594,283 @@ function initializeOrderFunctionality() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(order),
+                body: JSON.stringify(orderData),
+                credentials: 'include'
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        receiptContent.innerHTML = `
-                            <p>Order ID: ${data.orderId}</p>
-                            <p>Name: ${name}</p>
-                            <p>Table Number: ${tableNumber}</p>
-                            <p>Total: Rs.${order.total}</p>
-                            <p>Items: ${formattedItems}</p>
-                        `;
-                        receiptModal.style.display = 'block';
-                        orderConfirmationModal.style.display = 'none';
-
-                        // Clear cart after successful order
-                        cart = [];
-                        updateCartDisplay();
-                    } else {
-                        alert('Failed to place order. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                });
+            .then(response => {
+                console.log('Order response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Order response data:', data);
+                
+                // Reset button state
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+                
+                if (data.success) {
+                    // Hide order modal first
+                    hideModal(orderConfirmationModal);
+                    
+                    // Show success receipt after a small delay
+                    setTimeout(() => {
+                        showOrderReceipt({
+                            orderId: data.orderId,
+                            name: name,
+                            tableNumber: tableNumber,
+                            items: formattedItems,
+                            total: total.toFixed(2),
+                            specialRequests: specialRequests,
+                            orderTime: new Date().toLocaleString()
+                        });
+                    }, 100);
+                    
+                    // Clear cart after successful order
+                    cart = [];
+                    updateCartDisplay();
+                    
+                    // Reset form
+                    orderForm.reset();
+                    
+                    showNotification('Order placed successfully!', 'success');
+                    console.log('Order placed successfully');
+                } else {
+                    throw new Error(data.message || 'Unknown error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Order submission error:', error);
+                
+                // Reset button state
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+                
+                showNotification('An error occurred while placing your order: ' + error.message, 'error');
+            });
         });
+    } else {
+        console.error('Order form not found');
     }
 }
 
-// -----------------------------------------------------
-// Clear Cart Button (Menu Section)
-// -----------------------------------------------------
+
+
+// ========================================
+// ENHANCED MODAL MANAGEMENT
+// ========================================
+
+function showModal(modal) {
+    if (!modal) return;
+    
+    // First restore scrolling if it was disabled
+    document.body.style.overflow = 'auto';
+    
+    // Hide all other modals first
+    hideAllModals();
+    
+    // Show the requested modal
+    modal.style.display = 'block';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    
+    // Disable background scrolling
+    document.body.style.overflow = 'hidden';
+    
+    console.log('Modal shown:', modal.id);
+}
+
+function hideModal(modal) {
+    if (!modal) return;
+    
+    modal.style.display = 'none';
+    modal.style.visibility = 'hidden';
+    modal.style.opacity = '0';
+    
+    // Restore scrolling
+    document.body.style.overflow = 'auto';
+    
+    console.log('Modal hidden:', modal.id);
+}
+
+function hideAllModals() {
+    // List of all modal IDs
+    const modalIds = [
+        'order-confirmation-modal',
+        'receipt',
+        'shop-receipt-modal'
+    ];
+    
+    modalIds.forEach(id => {
+        const modal = document.getElementById(id);
+        if (modal) {
+            hideModal(modal);
+        }
+    });
+    
+    // Ensure scrolling is restored
+    document.body.style.overflow = 'auto';
+    
+    console.log('All modals hidden and scrolling restored');
+}
+
+// Enhanced function to show order receipt
+function showOrderReceipt(orderData) {
+    const receiptModal = document.getElementById('receipt');
+    const receiptContent = document.getElementById('receipt-content');
+    
+    console.log('Attempting to show order receipt:', orderData);
+    
+    if (!receiptModal || !receiptContent) {
+        console.error('Receipt modal or content not found');
+        showNotification('Order placed successfully! Receipt unavailable - check browser console.', 'success');
+        // Ensure scrolling is restored even if modal fails
+        document.body.style.overflow = 'auto';
+        return;
+    }
+    
+    receiptContent.innerHTML = `
+        <div class="receipt-header">
+            <h2>🎉 Order Confirmation</h2>
+            <p>Thank you for your order!</p>
+        </div>
+        <div class="receipt-details">
+            <div class="receipt-row">
+                <strong>Order ID:</strong> <span>#${orderData.orderId}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Customer:</strong> <span>${orderData.name}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Table Number:</strong> <span>${orderData.tableNumber}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Items:</strong>
+                <div class="receipt-items">
+                    ${orderData.items}
+                </div>
+            </div>
+            <div class="receipt-row total-row">
+                <strong>Total Amount:</strong> <span class="total-amount">₹${orderData.total}</span>
+            </div>
+            ${orderData.specialRequests ? `
+            <div class="receipt-row">
+                <strong>Special Requests:</strong> <span>${orderData.specialRequests}</span>
+            </div>
+            ` : ''}
+            <div class="receipt-row">
+                <strong>Order Time:</strong> <span>${orderData.orderTime}</span>
+            </div>
+        </div>
+        <div class="receipt-footer">
+            <p>✅ Your order has been sent to the kitchen!</p>
+            <p>📱 You will receive updates on your order status.</p>
+        </div>
+    `;
+    
+    // Show receipt modal using the enhanced function
+    showModal(receiptModal);
+    
+    console.log('Receipt displayed successfully');
+}
+
+// Enhanced function to show order receipt
+function showOrderReceipt(orderData) {
+    const receiptModal = document.getElementById('receipt');
+    const receiptContent = document.getElementById('receipt-content');
+    
+    if (!receiptModal || !receiptContent) {
+        console.error('Receipt modal or content not found');
+        showNotification('Order placed successfully! Receipt unavailable.', 'success');
+        return;
+    }
+    
+    receiptContent.innerHTML = `
+        <div class="receipt-header">
+            <h2>🎉 Order Confirmation</h2>
+            <p>Thank you for your order!</p>
+        </div>
+        <div class="receipt-details">
+            <div class="receipt-row">
+                <strong>Order ID:</strong> <span>#${orderData.orderId}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Customer:</strong> <span>${orderData.name}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Table Number:</strong> <span>${orderData.tableNumber}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Items:</strong>
+                <div class="receipt-items">
+                    ${orderData.items}
+                </div>
+            </div>
+            <div class="receipt-row total-row">
+                <strong>Total Amount:</strong> <span class="total-amount">₹${orderData.total}</span>
+            </div>
+            ${orderData.specialRequests ? `
+            <div class="receipt-row">
+                <strong>Special Requests:</strong> <span>${orderData.specialRequests}</span>
+            </div>
+            ` : ''}
+            <div class="receipt-row">
+                <strong>Order Time:</strong> <span>${orderData.orderTime}</span>
+            </div>
+        </div>
+        <div class="receipt-footer">
+            <p>✅ Your order has been sent to the kitchen!</p>
+            <p>📱 You will receive updates on your order status.</p>
+        </div>
+    `;
+    
+    // Show receipt modal
+    receiptModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Auto-hide after 10 seconds (optional)
+    setTimeout(() => {
+        if (receiptModal.style.display === 'block') {
+            showNotification('Receipt will remain open. Click the close button when done.', 'info');
+        }
+    }, 10000);
+    
+    console.log('Receipt displayed successfully');
+}
+
+// Enhanced clear cart functionality
 function initializeClearCart() {
     const clearCartButton = document.getElementById('clear-cart');
     if (clearCartButton) {
-        console.log('Clear Cart button found');
         clearCartButton.addEventListener('click', () => {
-            console.log('Clear Cart button clicked');
-            console.log('Cart before clearing:', cart);
-            cart = [];
-            console.log('Cart after clearing:', cart);
-            updateCartDisplay();
-            alert('Cart cleared!');
+            try {
+                if (cart.length === 0) {
+                    showNotification('Cart is already empty', 'info');
+                    return;
+                }
+                
+                const itemCount = cart.length;
+                cart = [];
+                updateCartDisplay();
+                
+                showNotification(`Cleared ${itemCount} items from cart`, 'success');
+                console.log('Cart cleared');
+            } catch (error) {
+                console.error('Error clearing cart:', error);
+                showNotification('Error clearing cart', 'error');
+            }
         });
     } else {
-        console.error('Clear Cart button not found');
+        console.warn('Clear cart button not found');
     }
 }
 
-// -----------------------------------------------------
-// Shop Section Initialization
-// -----------------------------------------------------
+// ========================================
+// ENHANCED SHOP FUNCTIONALITY
+// ========================================
+
 function initializeShopSection() {
     const productGrid = document.querySelector('.product-grid');
     const shopCartItems = document.getElementById('shop-cart-items');
@@ -445,6 +890,9 @@ function initializeShopSection() {
         shopCartSection.style.display = 'none';
     }
 
+    // Make shopCart globally available
+    window.shopCart = shopCart;
+
     // Fetch products and display them in the product grid
     function fetchProducts() {
         fetch('/api/products')
@@ -455,7 +903,10 @@ function initializeShopSection() {
                 hideAllProducts();
                 showPlaceholder();
             })
-            .catch(error => console.error('Error fetching products:', error));
+            .catch(error => {
+                console.error('Error fetching products:', error);
+                showNotification('Failed to load products', 'error');
+            });
     }
 
     // Display products in the grid
@@ -538,62 +989,286 @@ function initializeShopSection() {
 
     // Handle adding product to shop cart
     function addToShopCart(event) {
+        event.preventDefault();
         const productId = event.target.getAttribute('data-id');
         const product = products.find(p => p.id == productId);
+        
         if (product) {
-            shopCart.push(product);
+            // Check if product already in cart
+            const existingItem = shopCart.find(item => item.id === product.id);
+            
+            if (existingItem) {
+                existingItem.quantity = (existingItem.quantity || 1) + 1;
+            } else {
+                shopCart.push({...product, quantity: 1});
+            }
+            
             updateShopCart();
+            
+            // Visual feedback
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Added!';
+            button.style.backgroundColor = '#4caf50';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.backgroundColor = '';
+            }, 1000);
+            
             // Show the cart section when an item is added
             if (shopCartSection) {
                 shopCartSection.style.display = 'block';
             }
+            
+            showNotification(`Added ${product.name} to shop cart!`, 'success');
+            console.log('Added to shop cart:', product.name);
         }
     }
 
     // Quick view product details
     function quickView(event) {
+        event.preventDefault();
         const productId = event.target.getAttribute('data-id');
         const product = products.find(p => p.id == productId);
         if (product) {
-            alert(`Quick View: ${product.name}\n${product.description}\nPrice: ₹${product.price.toFixed(2)}`);
+            alert(`Quick View: ${product.name}\n${product.description}\nPrice: ₹${product.price.toFixed(2)}\nRating: ${product.rating}/5 (${product.review_count} reviews)`);
         }
     }
 
     // Add product to wishlist
     function addToWishlist(event) {
+        event.preventDefault();
         const productId = event.target.getAttribute('data-id');
         const product = products.find(p => p.id == productId);
         if (product) {
-            alert(`Added to Wishlist: ${product.name}`);
+            // Visual feedback
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Saved!';
+            button.style.backgroundColor = '#ff9800';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.backgroundColor = '';
+            }, 1000);
+            
+            showNotification(`Added ${product.name} to wishlist!`, 'success');
+            console.log('Added to wishlist:', product.name);
         }
     }
 
     // Update shop cart display
     function updateShopCart() {
         if (!shopCartItems) return;
+        
         shopCartItems.innerHTML = '';
         let subtotal = 0;
-        shopCart.forEach(item => {
+        
+        if (shopCart.length === 0) {
+            shopCartItems.innerHTML = '<div class="empty-cart-message">Your shopping cart is empty.</div>';
+            if (shopSubtotalElement) shopSubtotalElement.textContent = '0.00';
+            if (shopTotalElement) shopTotalElement.textContent = '0.00';
+            return;
+        }
+        
+        shopCart.forEach((item, index) => {
+            const itemTotal = item.price * (item.quantity || 1);
+            subtotal += itemTotal;
+            
             const cartItem = document.createElement('div');
-            cartItem.className = 'cart-item';
-            cartItem.innerHTML = `<p>${item.name} - ₹${item.price.toFixed(2)}</p>`;
+            cartItem.className = 'shop-cart-item';
+            cartItem.innerHTML = `
+                <div class="item-details">
+                    <h4>${item.name}</h4>
+                    <p>₹${item.price.toFixed(2)} each</p>
+                </div>
+                <div class="item-controls">
+                    <button class="quantity-btn" onclick="updateShopCartQuantity(${index}, -1)">-</button>
+                    <span class="quantity">${item.quantity || 1}</span>
+                    <button class="quantity-btn" onclick="updateShopCartQuantity(${index}, 1)">+</button>
+                    <button class="remove-btn" onclick="removeFromShopCart(${index})">Remove</button>
+                </div>
+                <div class="item-total">₹${itemTotal.toFixed(2)}</div>
+            `;
             shopCartItems.appendChild(cartItem);
-            subtotal += item.price;
         });
-        shopSubtotalElement.textContent = subtotal.toFixed(2);
-        shopTotalElement.textContent = subtotal.toFixed(2);
+        
+        if (shopSubtotalElement) shopSubtotalElement.textContent = subtotal.toFixed(2);
+        if (shopTotalElement) shopTotalElement.textContent = subtotal.toFixed(2);
+        
+        console.log('Shop cart updated. Items:', shopCart.length, 'Total:', subtotal);
     }
+
+    // Make functions globally available for onclick handlers
+    window.updateShopCartQuantity = function(index, change) {
+        if (index >= 0 && index < shopCart.length) {
+            const newQuantity = (shopCart[index].quantity || 1) + change;
+            if (newQuantity <= 0) {
+                const removedItem = shopCart.splice(index, 1)[0];
+                showNotification(`Removed ${removedItem.name} from cart`, 'info');
+            } else {
+                shopCart[index].quantity = newQuantity;
+            }
+            updateShopCart();
+        }
+    };
+
+    window.updateShopCart = updateShopCart;
+
+    window.removeFromShopCart = function(index) {
+        if (index >= 0 && index < shopCart.length) {
+            const removedItem = shopCart.splice(index, 1)[0];
+            updateShopCart();
+            showNotification(`Removed ${removedItem.name} from shop cart`, 'info');
+            console.log('Removed from shop cart:', removedItem.name);
+        }
+    };
+
+    // ========================================
+// ENHANCED SHOP FUNCTIONALITY
+// ========================================
+
+function enhancedShopCheckout() {
+    const shopCheckoutBtn = document.getElementById('shop-checkout-btn');
+    
+    if (!shopCheckoutBtn) {
+        console.error('Shop checkout button not found');
+        return;
+    }
+    
+    shopCheckoutBtn.addEventListener('click', function() {
+        console.log('Shop checkout clicked, cart:', shopCart);
+        
+        if (!shopCart || shopCart.length === 0) {
+            showNotification('Your shopping cart is empty!', 'warning');
+            return;
+        }
+        
+        const total = shopCart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+        const itemsList = shopCart.map(item => `${item.name} (x${item.quantity || 1}) - ₹${(item.price * (item.quantity || 1)).toFixed(2)}`);
+        
+        // Show confirmation dialog
+        const confirmationMessage = `🛒 Checkout Summary:\n\n${itemsList.join('\n')}\n\n💰 Total: ₹${total.toFixed(2)}\n\nProceed with checkout?`;
+        
+        if (confirm(confirmationMessage)) {
+            processShopOrder(total, itemsList);
+        }
+    });
+}
+
+function processShopOrder(total, itemsList) {
+    // Simulate processing delay
+    showNotification('Processing your order...', 'info');
+    
+    // Prepare shop order data
+    const shopOrderData = {
+        type: 'shop',
+        items: itemsList.join(', '),
+        total: total.toFixed(2),
+        orderTime: new Date().toISOString(),
+        orderId: 'SHOP-' + Date.now()
+    };
+    
+    // Simulate successful order
+    setTimeout(() => {
+        showShopReceipt(shopOrderData);
+        
+        // Clear shop cart
+        shopCart = [];
+        updateShopCart();
+        
+        // Hide cart section
+        const shopCartSection = document.getElementById('shop-cart');
+        if (shopCartSection) {
+            shopCartSection.style.display = 'none';
+        }
+        
+        showNotification('Shop order placed successfully!', 'success');
+    }, 2000);
+}
+
+function showShopReceipt(orderData) {
+    const shopReceiptModal = document.getElementById('shop-receipt-modal');
+    const shopReceiptContent = document.getElementById('shop-receipt-content');
+    
+    console.log('Attempting to show shop receipt:', orderData);
+    
+    if (!shopReceiptModal || !shopReceiptContent) {
+        console.error('Shop receipt modal not found');
+        showNotification('Order placed successfully! Receipt unavailable - check browser console.', 'success');
+        // Ensure scrolling is restored even if modal fails
+        document.body.style.overflow = 'auto';
+        return;
+    }
+    
+    shopReceiptContent.innerHTML = `
+        <div class="receipt-header">
+            <h2>🛍️ Shop Order Confirmation</h2>
+            <p>Thank you for your purchase!</p>
+        </div>
+        <div class="receipt-details">
+            <div class="receipt-row">
+                <strong>Order ID:</strong> <span>#${orderData.orderId}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Order Type:</strong> <span>Shop Purchase</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Items:</strong>
+                <div class="receipt-items">
+                    ${orderData.items.split(', ').map(item => `<div class="item-line">${item}</div>`).join('')}
+                </div>
+            </div>
+            <div class="receipt-row total-row">
+                <strong>Total Amount:</strong> <span class="total-amount">₹${orderData.total}</span>
+            </div>
+            <div class="receipt-row">
+                <strong>Order Time:</strong> <span>${new Date(orderData.orderTime).toLocaleString()}</span>
+            </div>
+        </div>
+        <div class="receipt-footer">
+            <p>📦 Your items will be prepared for pickup/delivery.</p>
+            <p>📞 Contact us for any questions about your order.</p>
+        </div>
+    `;
+    
+    // Show shop receipt modal using the enhanced function
+    showModal(shopReceiptModal);
+    
+    console.log('Shop receipt displayed successfully');
+}
 
     // Promo code functionality
     function applyPromoCode() {
-        const promoCode = shopPromoCodeInput.value;
-        // Add your promo code logic here
-        alert(`Promo code ${promoCode} applied!`);
-    }
-
-    // Checkout functionality
-    function checkout() {
-        alert('Proceeding to checkout!');
+        const promoCode = shopPromoCodeInput ? shopPromoCodeInput.value.trim() : '';
+        if (!promoCode) {
+            showNotification('Please enter a promo code', 'warning');
+            return;
+        }
+        
+        // Simple promo code logic (you can expand this)
+        const promoCodes = {
+            'SAVE10': 0.10,
+            'WELCOME': 0.15,
+            'FIRST20': 0.20
+        };
+        
+        if (promoCodes[promoCode.toUpperCase()]) {
+            const discount = promoCodes[promoCode.toUpperCase()];
+            const subtotal = shopCart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+            const discountAmount = subtotal * discount;
+            const newTotal = subtotal - discountAmount;
+            
+            if (shopTotalElement) {
+                shopTotalElement.textContent = newTotal.toFixed(2);
+                shopTotalElement.innerHTML += ` <small>(${(discount * 100)}% off applied)</small>`;
+            }
+            
+            showNotification(`Promo code applied! You saved ₹${discountAmount.toFixed(2)}`, 'success');
+        } else {
+            showNotification('Invalid promo code', 'error');
+        }
     }
 
     // Filter links in shop section (using shop-specific filters)
@@ -602,6 +1277,11 @@ function initializeShopSection() {
         link.addEventListener('click', function (e) {
             e.preventDefault();
             const category = link.getAttribute('data-category').toLowerCase();
+            
+            // Update active filter
+            shopFilterLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            
             showProductsByCategory(category);
         });
     });
@@ -610,36 +1290,17 @@ function initializeShopSection() {
     if (shopApplyPromoBtn) {
         shopApplyPromoBtn.addEventListener('click', applyPromoCode);
     }
-    if (shopCheckoutBtn) {
-        shopCheckoutBtn.addEventListener('click', checkout);
-    }
+
+    // Initialize enhanced checkout
+    enhancedShopCheckout();
 
     // Fetch products on load
     fetchProducts();
 }
 
-// -----------------------------------------------------
-// Main Initialization (DOM Loaded)
-// -----------------------------------------------------
-document.addEventListener('DOMContentLoaded', function () {
-    // Initialize Menu Section
-    fetchAndRenderMenuItems();
-    initializeClearCart();
-    initializeSidebar();
-    initializeOrderFunctionality();
-
-    // Initialize Shop Section
-    initializeShopSection();
-});
-
-
-
-
-
-
-
-
-
+// ========================================
+// RESERVATION FORM FUNCTIONALITY
+// ========================================
 
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('reservationForm');
@@ -650,14 +1311,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const slider = document.getElementById('guests');
     const sliderValue = document.querySelector('.ir-slider-value');
     const congratulationsDiv = document.getElementById('congratulations');
-    const receiptDiv = document.getElementById('receipt');
+    const receiptDiv = document.getElementById('reservation-receipt'); // FIXED: Changed from 'receipt' to 'reservation-receipt'
 
     let currentStep = 0;
 
     // Update slider value display
-    slider.addEventListener('input', () => {
-        sliderValue.textContent = slider.value;
-    });
+    if (slider && sliderValue) {
+        slider.addEventListener('input', () => {
+            sliderValue.textContent = slider.value;
+        });
+    }
 
     // Show current step
     function showStep(stepIndex) {
@@ -707,88 +1370,122 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Form submission
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
 
-        // Validate all steps before submission
-        if (!validateForm()) {
-            alert('Please fill out all required fields.');
-            return;
-        }
+            // Validate all steps before submission
+            if (!validateForm()) {
+                showNotification('Please fill out all required fields.', 'error');
+                return;
+            }
 
-        // Collect form data
-        const formData = new FormData(form);
-        const data = {};
-        formData.forEach((value, key) => {
-            data[key] = value;
-        });
-
-        // Send data to the server
-        fetch('/api/reservation', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    // Hide the form
-                    form.classList.add('hidden');
-
-                    // Show the congratulations section
-                    congratulationsDiv.classList.remove('hidden');
-
-                    // Populate receipt details
-                    document.getElementById('receiptDate').textContent = data.date;
-                    document.getElementById('receiptTime').textContent = data.time;
-                    document.getElementById('receiptGuests').textContent = data.guests;
-                    document.getElementById('receiptName').textContent = data.name;
-                    document.getElementById('receiptContact').textContent = data.contact;
-                    document.getElementById('receiptEmail').textContent = data.email;
-                    document.getElementById('receiptSeating').textContent = data.seating;
-                    document.getElementById('receiptSpecialRequests').textContent = data.specialRequests || 'None';
-                    document.getElementById('receiptConfirmationMethod').textContent = data.confirmationMethod;
-
-                    // Show the receipt section
-                    receiptDiv.classList.remove('hidden');
-
-                    // Trigger confetti
-                    confetti({
-                        particleCount: 100,
-                        spread: 70,
-                        origin: { y: 0.6 }
-                    });
-                } else {
-                    alert('Error: ' + result.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+            // Collect form data
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
             });
-    });
+
+            // Send data to the server
+            fetch('/api/reservation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+                credentials: 'include'
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // Hide the form
+                        form.classList.add('hidden');
+
+                        // Show the congratulations section
+                        if (congratulationsDiv) congratulationsDiv.classList.remove('hidden');
+
+                        // Populate receipt details if elements exist
+                        const receiptElements = {
+                            'receiptDate': data.date,
+                            'receiptTime': data.time,
+                            'receiptGuests': data.guests,
+                            'receiptName': data.name,
+                            'receiptContact': data.contact,
+                            'receiptEmail': data.email,
+                            'receiptSeating': data.seating,
+                            'receiptSpecialRequests': data.specialRequests || 'None',
+                            'receiptConfirmationMethod': data.confirmationMethod,
+                            'receiptTable': data.tableId ? `Table ID: ${data.tableId}` : 'Will be assigned'
+                        };
+
+                        Object.entries(receiptElements).forEach(([id, value]) => {
+                            const element = document.getElementById(id);
+                            if (element) element.textContent = value;
+                        });
+
+                        // Show the receipt section
+                        if (receiptDiv) receiptDiv.classList.remove('hidden');
+
+                        // Trigger confetti if available
+                        if (typeof confetti !== 'undefined') {
+                            confetti({
+                                particleCount: 100,
+                                spread: 70,
+                                origin: { y: 0.6 }
+                            });
+                        }
+
+                        showNotification('Reservation submitted successfully!', 'success');
+                    } else {
+                        showNotification('Error: ' + result.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred. Please try again.', 'error');
+                });
+        });
+    }
 
     // Print receipt button
-    document.getElementById('printReceiptButton').addEventListener('click', () => {
-        window.print();
-    });
+    const printReceiptButton = document.getElementById('printReceiptButton');
+    if (printReceiptButton) {
+        printReceiptButton.addEventListener('click', () => {
+            window.print();
+        });
+    }
 });
+
+// ========================================
+// TESTIMONIALS FUNCTIONALITY
+// ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
     const testimonialsCarousel = document.querySelector('.testimonials-carousel');
     const leaveReviewBtn = document.getElementById('leave-review-btn');
     const reviewFormContainer = document.getElementById('review-form-container');
     const reviewForm = document.getElementById('review-form');
-    const carouselTrack = document.createElement('div');
-    carouselTrack.className = 'carousel-track';
-    testimonialsCarousel.appendChild(carouselTrack);
-
+    const nextBtn = document.getElementById('next-btn');
+    const prevBtn = document.getElementById('prev-btn');
+    
+    let carouselTrack;
     let currentIndex = 0;
+
+    // Initialize carousel track
+    if (testimonialsCarousel) {
+        carouselTrack = testimonialsCarousel.querySelector('.carousel-track');
+        if (!carouselTrack) {
+            carouselTrack = document.createElement('div');
+            carouselTrack.className = 'carousel-track';
+            testimonialsCarousel.appendChild(carouselTrack);
+        }
+    }
 
     // Function to fetch testimonials and display them in the carousel
     function fetchTestimonials() {
+        if (!carouselTrack) return;
+        
         fetch('/api/testimonials')
             .then(response => response.json())
             .then(data => {
@@ -799,24 +1496,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     testimonialCard.innerHTML = `
                         <h3>${testimonial.name}</h3>
                         <p><strong>${testimonial.role}</strong></p>
-                        <p>Rating: ${'★'.repeat(testimonial.rating)}</p>
+                        <p>Rating: ${'★'.repeat(testimonial.rating)}${'☆'.repeat(5 - testimonial.rating)}</p>
                         <p>${testimonial.review}</p>
                     `;
                     carouselTrack.appendChild(testimonialCard);
                 });
                 updateCarousel();
             })
-            .catch(error => console.error('Error fetching testimonials:', error));
+            .catch(error => {
+                console.error('Error fetching testimonials:', error);
+                showNotification('Failed to load testimonials', 'error');
+            });
     }
 
     // Function to update the carousel position
     function updateCarousel() {
+        if (!testimonialsCarousel || !carouselTrack) return;
+        
         const cardWidth = testimonialsCarousel.offsetWidth;
         carouselTrack.style.transform = `translateX(-${currentIndex * cardWidth}px)`;
     }
 
     // Function to move to the next testimonial
     function nextTestimonial() {
+        if (!carouselTrack) return;
+        
         const totalCards = carouselTrack.children.length;
         if (currentIndex < totalCards - 1) {
             currentIndex++;
@@ -828,6 +1532,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to move to the previous testimonial
     function prevTestimonial() {
+        if (!carouselTrack) return;
+        
         const totalCards = carouselTrack.children.length;
         if (currentIndex > 0) {
             currentIndex--;
@@ -838,56 +1544,64 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Show the review form when the "Leave a Review" button is clicked
-    leaveReviewBtn.addEventListener('click', () => {
-        reviewFormContainer.style.display = 'block';
-    });
+    if (leaveReviewBtn && reviewFormContainer) {
+        leaveReviewBtn.addEventListener('click', () => {
+            reviewFormContainer.style.display = 'block';
+        });
+    }
 
     // Handle review form submission
-    reviewForm.addEventListener('submit', function(event) {
-        event.preventDefault();
-    
-        const formData = new FormData(reviewForm);
-        const reviewData = {
-            name: formData.get('name'),
-            role: formData.get('role'),
-            rating: parseInt(formData.get('rating')), // Convert rating to integer
-            review: formData.get('review')
-        };
-    
-        fetch('/api/testimonials', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(reviewData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Review submitted successfully!');
-                reviewForm.reset();
-                reviewFormContainer.style.display = 'none';
-                fetchTestimonials(); // Refresh the testimonials
-            } else {
-                alert('Failed to submit review. Please try again.');
-            }
-        })
-        .catch(error => console.error('Error submitting review:', error));
-    });
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+        
+            const formData = new FormData(reviewForm);
+            const reviewData = {
+                name: formData.get('name'),
+                role: formData.get('role'),
+                rating: parseInt(formData.get('rating')),
+                review: formData.get('review')
+            };
+        
+            fetch('/api/testimonials', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(reviewData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Review submitted successfully!', 'success');
+                    reviewForm.reset();
+                    if (reviewFormContainer) reviewFormContainer.style.display = 'none';
+                    fetchTestimonials(); // Refresh the testimonials
+                } else {
+                    showNotification('Failed to submit review. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting review:', error);
+                showNotification('Error submitting review. Please try again.', 'error');
+            });
+        });
+    }
+
+    // Add event listeners for next and previous buttons
+    if (nextBtn) {
+        nextBtn.addEventListener('click', nextTestimonial);
+    }
+    if (prevBtn) {
+        prevBtn.addEventListener('click', prevTestimonial);
+    }
 
     // Fetch testimonials on page load
     fetchTestimonials();
-
-    // Add event listeners for next and previous buttons (you can add these buttons in your HTML)
-    document.getElementById('next-btn').addEventListener('click', nextTestimonial);
-    document.getElementById('prev-btn').addEventListener('click', prevTestimonial);
 });
-
-
 
 // ========================================
 // CUSTOMER ACTIVITY TRACKING CODE
-// Add these functions to your existing script.js file
 // ========================================
 
 // Generate or get session ID
@@ -926,19 +1640,6 @@ function trackActivity(activityType, details = {}) {
     });
 }
 
-// Enhanced cart functionality with tracking
-function updateCartDisplayWithTracking() {
-    updateCartDisplay(); // Call existing function
-    
-    // Track cart view
-    if (cart.length > 0) {
-        trackActivity('cart_add', {
-            cartItems: cart.length,
-            cartValue: cart.reduce((sum, item) => sum + parseFloat(item.price.replace('Rs.', '')), 0)
-        });
-    }
-}
-
 // Track page views
 function trackPageView() {
     const pageData = {
@@ -960,426 +1661,184 @@ function trackMenuInteraction(action, itemName, category = null) {
     });
 }
 
-// Track search activities
-function trackSearchActivity(searchTerm, results = 0) {
-    trackActivity('search', {
-        searchTerm: searchTerm,
-        resultsCount: results,
-        searchType: 'menu'
-    });
-}
-
-// Track reservation interactions
-function trackReservationActivity(action, details = {}) {
-    trackActivity('reservation', {
-        action: action, // 'start', 'step_complete', 'submit', 'cancel'
-        ...details
-    });
-}
-
-// Track shop interactions
-function trackShopActivity(action, productDetails = {}) {
-    trackActivity('shop_interaction', {
-        action: action, // 'view_product', 'add_to_cart', 'remove_from_cart', 'checkout'
-        ...productDetails
-    });
-}
-
-// Enhanced order submission with tracking
-function enhancedOrderSubmission() {
-    const orderData = {
-        itemsCount: cart.length,
-        totalValue: cart.reduce((sum, item) => sum + parseFloat(item.price.replace('Rs.', '')), 0),
-        items: cart.map(item => item.name)
-    };
+// Enhanced cart functionality with tracking
+function updateCartDisplayWithTracking() {
+    updateCartDisplay(); // Call existing function
     
-    trackActivity('order', {
-        action: 'submit',
-        ...orderData
-    });
-}
-
-// Enhanced reservation form tracking
-function enhanceReservationForm() {
-    const form = document.getElementById('reservationForm');
-    if (!form) return;
-    
-    let currentStep = 1;
-    const totalSteps = 4;
-    
-    // Track form start
-    trackReservationActivity('start', { totalSteps: totalSteps });
-    
-    // Track step progression
-    const nextButtons = form.querySelectorAll('.ir-next-button');
-    nextButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            currentStep++;
-            trackReservationActivity('step_complete', {
-                completedStep: currentStep - 1,
-                currentStep: currentStep,
-                progress: ((currentStep - 1) / totalSteps) * 100
-            });
-        });
-    });
-    
-    // Track form submission
-    form.addEventListener('submit', function() {
-        const formData = new FormData(form);
-        const reservationData = {
-            date: formData.get('date'),
-            time: formData.get('time'),
-            guests: formData.get('guests'),
-            seating: formData.get('seating')
-        };
-        
-        trackReservationActivity('submit', reservationData);
-    });
-}
-
-// Enhanced menu browsing tracking
-function enhanceMenuTracking() {
-    // Track menu section views
-    const menuFilterLinks = document.querySelectorAll('#menu .filter-link');
-    menuFilterLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const category = this.getAttribute('data-category');
-            trackActivity('menu_category_view', {
-                category: category,
-                timestamp: new Date().toISOString()
-            });
-        });
-    });
-    
-    // Track menu item views (when items come into viewport)
-    if ('IntersectionObserver' in window) {
-        const menuItemObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const itemName = entry.target.querySelector('h4')?.textContent;
-                    const category = entry.target.getAttribute('data-category');
-                    
-                    if (itemName) {
-                        trackMenuInteraction('view', itemName, category);
-                    }
-                }
-            });
-        }, { threshold: 0.5 });
-        
-        // Observe menu items when they're added to DOM
-        const observeMenuItems = () => {
-            const menuItems = document.querySelectorAll('.menu-card');
-            menuItems.forEach(item => {
-                if (!item.hasAttribute('data-observed')) {
-                    menuItemObserver.observe(item);
-                    item.setAttribute('data-observed', 'true');
-                }
-            });
-        };
-        
-        // Initial observation
-        setTimeout(observeMenuItems, 1000);
-        
-        // Re-observe when menu is updated
-        const menuContainer = document.getElementById('menu-categories');
-        if (menuContainer) {
-            const menuObserver = new MutationObserver(observeMenuItems);
-            menuObserver.observe(menuContainer, { childList: true, subtree: true });
-        }
-    }
-}
-
-// Enhanced search tracking
-function enhanceSearchTracking() {
-    const searchInputs = document.querySelectorAll('input[type="text"][placeholder*="Search"], input[type="text"][placeholder*="search"]');
-    
-    searchInputs.forEach(input => {
-        let searchTimeout;
-        
-        input.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const searchTerm = this.value.trim();
-                if (searchTerm.length >= 2) {
-                    // Count visible results
-                    const visibleItems = document.querySelectorAll('.menu-card:not([style*="display: none"]), .product-item:not([style*="display: none"])').length;
-                    trackSearchActivity(searchTerm, visibleItems);
-                }
-            }, 500);
-        });
-    });
-}
-
-// Enhanced cart tracking
-function enhanceCartTracking() {
-    // Override existing add to cart functions
-    const originalUpdateCartDisplay = window.updateCartDisplay;
-    window.updateCartDisplay = function() {
-        originalUpdateCartDisplay?.();
-        
-        // Track cart state
-        if (cart.length > 0) {
-            const cartValue = cart.reduce((sum, item) => sum + parseFloat(item.price.replace('Rs.', '')), 0);
-            trackActivity('cart_view', {
-                itemsCount: cart.length,
-                cartValue: cartValue,
-                items: cart.map(item => ({ name: item.name, price: item.price }))
-            });
-        }
-    };
-    
-    // Track cart clearing
-    const clearCartButton = document.getElementById('clear-cart');
-    if (clearCartButton) {
-        clearCartButton.addEventListener('click', function() {
-            trackActivity('cart_clear', {
-                itemsRemoved: cart.length,
-                valueRemoved: cart.reduce((sum, item) => sum + parseFloat(item.price.replace('Rs.', '')), 0)
-            });
+    // Track cart view
+    if (cart.length > 0) {
+        trackActivity('cart_add', {
+            cartItems: cart.length,
+            cartValue: cart.reduce((sum, item) => sum + parseFloat(item.price.replace('Rs.', '').replace('₹', '')), 0)
         });
     }
 }
 
-// Enhanced shop tracking
-function enhanceShopTracking() {
-    // Track product category browsing
-    const shopFilterLinks = document.querySelectorAll('#shop .filter-link');
-    shopFilterLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const category = this.getAttribute('data-category');
-            trackShopActivity('category_view', { category: category });
-        });
-    });
-    
-    // Track product interactions
-    document.addEventListener('click', function(e) {
-        // Track add to cart for shop items
-        if (e.target.classList.contains('add-to-shop-cart')) {
-            const productCard = e.target.closest('.product-item');
-            if (productCard) {
-                const productName = productCard.querySelector('h3')?.textContent;
-                const productPrice = productCard.querySelector('.product-price')?.textContent;
-                const productCategory = productCard.className.match(/\b(\w+)\b/)?.[1];
-                
-                trackShopActivity('add_to_cart', {
-                    productName: productName,
-                    productPrice: productPrice,
-                    productCategory: productCategory
-                });
-            }
-        }
-        
-        // Track quick view
-        if (e.target.classList.contains('quick-view')) {
-            const productCard = e.target.closest('.product-item');
-            if (productCard) {
-                const productName = productCard.querySelector('h3')?.textContent;
-                trackShopActivity('quick_view', { productName: productName });
-            }
-        }
-        
-        // Track wishlist additions
-        if (e.target.classList.contains('add-to-wishlist')) {
-            const productCard = e.target.closest('.product-item');
-            if (productCard) {
-                const productName = productCard.querySelector('h3')?.textContent;
-                trackShopActivity('add_to_wishlist', { productName: productName });
-            }
-        }
-    });
+// ========================================
+// DEBUG AND TESTING FUNCTIONS
+// ========================================
+
+// Debug function to check order system
+function debugOrderSystem() {
+    console.log('=== ORDER SYSTEM DEBUG ===');
+    console.log('Cart:', cart);
+    console.log('Shop Cart:', typeof shopCart !== 'undefined' ? shopCart : 'Not defined');
+    console.log('Order button:', !!document.getElementById('order-now'));
+    console.log('Order modal:', !!document.getElementById('order-confirmation-modal'));
+    console.log('Receipt modal:', !!document.getElementById('receipt'));
+    console.log('Shop checkout btn:', !!document.getElementById('shop-checkout-btn'));
+    console.log('Shop receipt modal:', !!document.getElementById('shop-receipt-modal'));
+    console.log('========================');
 }
 
-// Track testimonial interactions
-function enhanceTestimonialTracking() {
-    const leaveReviewBtn = document.getElementById('leave-review-btn');
-    if (leaveReviewBtn) {
-        leaveReviewBtn.addEventListener('click', function() {
-            trackActivity('review', { action: 'start_review' });
-        });
-    }
+// Test function to add items to cart
+function addTestItemsToCart() {
+    const testItems = [
+        { name: 'Paneer Butter Masala', price: '₹250.00' },
+        { name: 'Garlic Naan', price: '₹50.00' },
+        { name: 'Dal Makhani', price: '₹180.00' }
+    ];
     
-    const reviewForm = document.getElementById('review-form');
-    if (reviewForm) {
-        reviewForm.addEventListener('submit', function() {
-            const rating = document.getElementById('rating')?.value;
-            trackActivity('review', {
-                action: 'submit_review',
-                rating: rating
-            });
-        });
-    }
+    cart.push(...testItems);
+    updateCartDisplay();
+    
+    console.log('✅ Added test items to cart:', testItems);
+    showNotification('Test items added to cart!', 'success');
+    
+    return cart;
 }
 
-// Track scroll depth for engagement metrics
-function trackScrollDepth() {
-    let maxScroll = 0;
-    let scrollCheckpoints = [25, 50, 75, 90, 100];
-    let reachedCheckpoints = [];
-    
-    function checkScrollDepth() {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const scrollPercent = Math.round((scrollTop / docHeight) * 100);
-        
-        if (scrollPercent > maxScroll) {
-            maxScroll = scrollPercent;
-            
-            // Check if we've reached any new checkpoints
-            scrollCheckpoints.forEach(checkpoint => {
-                if (scrollPercent >= checkpoint && !reachedCheckpoints.includes(checkpoint)) {
-                    reachedCheckpoints.push(checkpoint);
-                    trackActivity('scroll_depth', {
-                        depth: checkpoint,
-                        page: window.location.pathname
-                    });
-                }
-            });
+// Make debug functions globally available
+window.debugOrderSystem = debugOrderSystem;
+window.addTestItemsToCart = addTestItemsToCart;
+
+// ========================================
+// SIDEBAR AND PAGE LAYOUT (MENU SECTION)
+// ========================================
+
+function initializeSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const menuSection = document.getElementById('menu');
+    const reservationSection = document.getElementById('reservation');
+
+    function toggleSidebar() {
+        if (!menuSection || !sidebar || !mainContent) return;
+        const menuSectionRect = menuSection.getBoundingClientRect();
+        let reservationSectionRect;
+        if (reservationSection) {
+            reservationSectionRect = reservationSection.getBoundingClientRect();
+        }
+
+        // Check if the menu section is in the viewport
+        if (menuSectionRect.top <= 0 && menuSectionRect.bottom >= 0) {
+            sidebar.classList.add('visible');
+            mainContent.classList.add('shifted');
+
+            if (reservationSectionRect) {
+                // Calculate the height of the sidebar
+                const sidebarHeight = reservationSectionRect.top - menuSectionRect.top;
+                sidebar.style.height = `${sidebarHeight}px`;
+            }
+
+            // Set top position (relative to menu section)
+            sidebar.style.top = `0`;
+        } else {
+            sidebar.classList.remove('visible');
+            mainContent.classList.remove('shifted');
         }
     }
-    
-    // Throttled scroll listener
-    let scrollTimeout;
-    window.addEventListener('scroll', function() {
-        if (scrollTimeout) return;
-        scrollTimeout = setTimeout(() => {
-            checkScrollDepth();
-            scrollTimeout = null;
-        }, 100);
-    });
+
+    window.addEventListener('scroll', toggleSidebar);
+    toggleSidebar();
 }
 
-// Track time spent on page
-function trackTimeOnPage() {
-    const startTime = Date.now();
-    let lastActivityTime = startTime;
-    let totalActiveTime = 0;
-    let isActive = true;
-    
-    // Track user activity
-    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    activityEvents.forEach(event => {
-        document.addEventListener(event, function() {
-            const now = Date.now();
-            if (isActive) {
-                totalActiveTime += now - lastActivityTime;
-            }
-            lastActivityTime = now;
-            isActive = true;
-        });
-    });
-    
-    // Track when user becomes inactive
-    let inactivityTimer;
-    function resetInactivityTimer() {
-        clearTimeout(inactivityTimer);
-        inactivityTimer = setTimeout(() => {
-            isActive = false;
-        }, 30000); // 30 seconds of inactivity
-    }
-    
-    activityEvents.forEach(event => {
-        document.addEventListener(event, resetInactivityTimer);
-    });
-    resetInactivityTimer();
-    
-    // Send time data when user leaves page
-    window.addEventListener('beforeunload', function() {
-        const now = Date.now();
-        if (isActive) {
-            totalActiveTime += now - lastActivityTime;
-        }
-        
-        trackActivity('time_on_page', {
-            totalTime: now - startTime,
-            activeTime: totalActiveTime,
-            page: window.location.pathname
-        });
-    });
-    
-    // Also send periodic updates for long sessions
-    setInterval(() => {
-        const now = Date.now();
-        if (isActive) {
-            trackActivity('session_heartbeat', {
-                sessionTime: now - startTime,
-                activeTime: totalActiveTime + (now - lastActivityTime),
-                page: window.location.pathname
-            });
-        }
-    }, 300000); // Every 5 minutes
-}
+// ========================================
+// MAIN INITIALIZATION (DOM LOADED) - UPDATED
+// ========================================
 
-// Track form abandonment
-function trackFormAbandonment() {
-    const forms = document.querySelectorAll('form');
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('Restaurant website initialized');
     
-    forms.forEach(form => {
-        let formStarted = false;
-        let formData = {};
-        
-        // Track when user starts filling form
-        form.addEventListener('input', function(e) {
-            if (!formStarted) {
-                formStarted = true;
-                trackActivity('form_start', {
-                    formId: form.id || 'unknown',
-                    formType: form.className || 'unknown'
-                });
-            }
-            
-            // Store field completion
-            formData[e.target.name || e.target.id] = !!e.target.value;
-        });
-        
-        // Track form submission
-        form.addEventListener('submit', function() {
-            trackActivity('form_complete', {
-                formId: form.id || 'unknown',
-                completedFields: Object.values(formData).filter(Boolean).length,
-                totalFields: Object.keys(formData).length
-            });
-        });
-        
-        // Track form abandonment (when user navigates away)
-        window.addEventListener('beforeunload', function() {
-            if (formStarted && !form.querySelector('input[type="submit"]:focus')) {
-                trackActivity('form_abandon', {
-                    formId: form.id || 'unknown',
-                    completedFields: Object.values(formData).filter(Boolean).length,
-                    totalFields: Object.keys(formData).length,
-                    abandonedAt: Date.now()
-                });
-            }
-        });
-    });
-}
-
-// Initialize all tracking
-document.addEventListener('DOMContentLoaded', function() {
-    // Basic page tracking
+    // Track page view
     trackPageView();
     
-    // Enhanced feature tracking
-    enhanceReservationForm();
-    enhanceMenuTracking();
-    enhanceSearchTracking();
-    enhanceCartTracking();
-    enhanceShopTracking();
-    enhanceTestimonialTracking();
+    // Initialize Menu Section with enhanced error handling
+    try {
+        fetchAndRenderMenuItems();
+        initializeClearCart();
+        initializeSidebar();
+        initializeOrderFunctionality();
+        console.log('Menu section initialized successfully');
+    } catch (error) {
+        console.error('Error initializing menu section:', error);
+        showNotification('Failed to initialize menu section', 'error');
+    }
+
+    // Initialize Shop Section with enhanced error handling
+    try {
+        initializeShopSection();
+        console.log('Shop section initialized successfully');
+    } catch (error) {
+        console.error('Error initializing shop section:', error);
+        showNotification('Failed to initialize shop section', 'error');
+    }
     
-    // Engagement tracking
-    trackScrollDepth();
-    trackTimeOnPage();
-    trackFormAbandonment();
+    // Initialize utility functions
+    try {
+        initializeCartToggle();
+        console.log('Utility functions initialized successfully');
+    } catch (error) {
+        console.error('Error initializing utilities:', error);
+    }
     
-    // Track when user becomes active/inactive
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            trackActivity('page_hidden', { timestamp: new Date().toISOString() });
-        } else {
-            trackActivity('page_visible', { timestamp: new Date().toISOString() });
-        }
-    });
+    // Add CSS animations for notifications
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .notification-close {
+                background: none;
+                border: none;
+                color: white;
+                cursor: pointer;
+                padding: 5px;
+                margin-left: 10px;
+            }
+            
+            .notification-close:hover {
+                opacity: 0.7;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Show welcome message
+    setTimeout(() => {
+        showNotification('Welcome to Spice Symphony! Browse our menu and add items to your cart.', 'info', 5000);
+    }, 1000);
+    
+    // Auto-run debug check
+    setTimeout(() => {
+        console.log('\n🔍 Running automatic system check...');
+        debugOrderSystem();
+    }, 3000);
 });
 
 // Track when user clicks external links
@@ -1403,4 +1862,102 @@ window.addEventListener('error', function(e) {
         column: e.colno,
         page: window.location.pathname
     });
+});
+
+// Track when user becomes active/inactive
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        trackActivity('page_hidden', { timestamp: new Date().toISOString() });
+    } else {
+        trackActivity('page_visible', { timestamp: new Date().toISOString() });
+    }
+});
+
+
+// ========================================
+// ENHANCED EVENT LISTENERS
+// ========================================
+
+// Enhanced close modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Close button event listeners
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('close') || e.target.closest('.close')) {
+            e.preventDefault();
+            console.log('Close button clicked');
+            hideAllModals();
+        }
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener('click', function(e) {
+        const modals = [
+            document.getElementById('order-confirmation-modal'),
+            document.getElementById('receipt'),
+            document.getElementById('shop-receipt-modal')
+        ];
+        
+        modals.forEach(modal => {
+            if (modal && e.target === modal) {
+                hideModal(modal);
+            }
+        });
+    });
+
+    // Escape key to close modals
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideAllModals();
+        }
+    });
+
+    // Add debugging function to check modal state
+    window.debugModals = function() {
+        console.log('=== MODAL DEBUG ===');
+        const modalIds = ['order-confirmation-modal', 'receipt', 'shop-receipt-modal'];
+        modalIds.forEach(id => {
+            const modal = document.getElementById(id);
+            if (modal) {
+                console.log(`${id}:`, {
+                    exists: !!modal,
+                    display: modal.style.display,
+                    visibility: modal.style.visibility,
+                    opacity: modal.style.opacity
+                });
+            } else {
+                console.log(`${id}: NOT FOUND`);
+            }
+        });
+        console.log('Body overflow:', document.body.style.overflow);
+        console.log('=================');
+    };
+
+    // Force restore scrolling function for emergencies
+    window.forceRestoreScrolling = function() {
+        document.body.style.overflow = 'auto';
+        document.body.style.overflowY = 'auto';
+        document.documentElement.style.overflow = 'auto';
+        console.log('Scrolling forcefully restored!');
+    };
+});
+
+// ========================================
+// PAGE VISIBILITY HANDLER
+// ========================================
+
+// Restore scrolling when page becomes visible (in case user switches tabs)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        // Check if any modals are actually visible
+        const modalIds = ['order-confirmation-modal', 'receipt', 'shop-receipt-modal'];
+        const hasVisibleModal = modalIds.some(id => {
+            const modal = document.getElementById(id);
+            return modal && modal.style.display === 'block';
+        });
+        
+        // If no modals are visible, restore scrolling
+        if (!hasVisibleModal) {
+            document.body.style.overflow = 'auto';
+        }
+    }
 });

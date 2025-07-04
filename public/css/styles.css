@@ -5242,3 +5242,386 @@ select:focus {
     color: var(--white);
   }
 }
+
+
+/* ========================================
+   ENHANCED MODAL STYLES - ADD TO YOUR CSS
+   ======================================== */
+
+/* Ensure modals are properly layered and visible */
+.modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10000 !important; /* Very high z-index */
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal.show,
+.modal[style*="display: block"] {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.modal-content {
+  background: var(--white, #ffffff) !important;
+  border-radius: var(--radius-2xl, 1rem);
+  padding: 2rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 100%;
+  max-width: 500px;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 10001;
+}
+
+.modal.show .modal-content,
+.modal[style*="display: block"] .modal-content {
+  transform: scale(1);
+}
+
+/* Close button styling */
+.modal .close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+}
+
+.modal .close:hover {
+  background: #ff4444;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Modal header styling */
+.modal-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #eee;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--primary-color, #d32f2f);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Modal body styling */
+.modal-body {
+  margin-bottom: 1.5rem;
+}
+
+/* Receipt specific styling */
+.receipt-content {
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--primary-color, #d32f2f), #ff0000);
+  color: white;
+  border-radius: 10px;
+}
+
+.receipt-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.receipt-header p {
+  margin: 0;
+  opacity: 0.9;
+}
+
+.receipt-details {
+  margin: 1.5rem 0;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.receipt-row:last-child {
+  border-bottom: none;
+}
+
+.receipt-row.total-row {
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: #f9f9f9;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  border: 2px solid var(--primary-color, #d32f2f);
+}
+
+.receipt-items {
+  margin-top: 0.5rem;
+  padding-left: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.item-line {
+  padding: 0.25rem 0;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f0f8ff;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent-color, #4caf50);
+}
+
+.receipt-footer p {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+/* Modal actions (buttons) */
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.modal-actions button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.modal-actions .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color, #d32f2f), #ff0000);
+  color: white;
+}
+
+.modal-actions .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(211, 47, 47, 0.3);
+}
+
+.modal-actions .btn-secondary {
+  background: #f0f0f0;
+  color: #666;
+  border: 2px solid #ddd;
+}
+
+.modal-actions .btn-secondary:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Order summary styling */
+.order-summary {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 2px solid #ddd;
+}
+
+.order-summary h4 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-color, #d32f2f);
+}
+
+.order-summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.order-summary-item:last-child {
+  border-bottom: none;
+}
+
+.order-total-display {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--primary-color, #d32f2f);
+  border: 2px solid var(--primary-color, #d32f2f);
+}
+
+/* Form styling within modals */
+.modal form {
+  margin: 0;
+}
+
+.modal .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal .form-group input,
+.modal .form-group textarea,
+.modal .form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.modal .form-group input:focus,
+.modal .form-group textarea:focus,
+.modal .form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color, #d32f2f);
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+}
+
+.required {
+  color: #ff4444;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* Responsive design for modals */
+@media (max-width: 768px) {
+  .modal {
+    padding: 10px;
+  }
+  
+  .modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+    padding: 1.5rem;
+  }
+  
+  .modal-actions,
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .modal-actions button,
+  .form-actions button {
+    width: 100%;
+  }
+  
+  .receipt-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .order-summary-item {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    padding: 1rem;
+  }
+  
+  .receipt-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.25rem;
+  }
+}
+
+/* Debug styles (remove these in production) */
+.debug-modal {
+  border: 3px solid red !important;
+}
+
+.debug-modal::before {
+  content: "DEBUG: Modal is visible";
+  position: absolute;
+  top: -30px;
+  left: 0;
+  background: red;
+  color: white;
+  padding: 5px;
+  font-size: 12px;
+  z-index: 10003;
+}
+
+/* Force scrollbar restoration utility class */
+.force-scroll-restore {
+  overflow: auto !important;
+  overflow-y: auto !important;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
