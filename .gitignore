@@ -61,5 +61,8 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
-# Vercel
-.vercel
+
+node_modules/
+.env
+.DS_Store
+*.log
