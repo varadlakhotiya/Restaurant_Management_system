@@ -1,7 +1,7 @@
 require('dotenv').config(); // Load environment variables from .env file
 
 const express = require('express');
-const mysql = require('mysql');
+const mysql = require('mysql2'); // Changed from 'mysql' to 'mysql2'
 const path = require('path');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
@@ -11,23 +11,28 @@ const session = require('express-session');
 const app = express();
 const fs = require('fs');
 
-// Use environment variables for database configuration
+// Use environment variables for database configuration with mysql2
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    connectTimeout: 60000,
     acquireTimeout: 60000,
     timeout: 60000,
-    reconnect: true,
     ssl: process.env.DB_SSL === 'true' ? {
-        rejectUnauthorized: false,
-        ca: undefined
+        rejectUnauthorized: false
     } : false,
-    charset: 'utf8mb4'
+    charset: 'utf8mb4',
+    // Additional mysql2 specific options
+    authPlugins: {
+        mysql_native_password: () => require('mysql2/lib/auth_plugins').mysql_native_password,
+        caching_sha2_password: () => require('mysql2/lib/auth_plugins').caching_sha2_password
+    }
 });
 
+// Test the connection
 db.connect((err) => {
     if (err) {
         console.error('❌ Error connecting to MySQL:', err);
@@ -52,12 +57,23 @@ db.connect((err) => {
     }
 });
 
+// Handle connection errors
+db.on('error', function(err) {
+    console.error('💥 Database error:', err);
+    if(err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('🔄 Connection lost, attempting to reconnect...');
+        // mysql2 handles reconnection automatically
+    }
+});
+
 // Enhanced database initialization
 function initializeDatabase() {
     // First, create the spice_symphony database if it doesn't exist
     db.query('CREATE DATABASE IF NOT EXISTS spice_symphony', (err) => {
         if (err) {
             console.error('Error creating database:', err);
+            console.log('📝 Continuing with default database...');
+            createTables();
         } else {
             console.log('✅ Database spice_symphony ensured');
             
@@ -65,7 +81,6 @@ function initializeDatabase() {
             db.query('USE spice_symphony', (err) => {
                 if (err) {
                     console.error('Error switching to spice_symphony database:', err);
-                    // Fall back to default database
                     console.log('📝 Continuing with default database...');
                     createTables();
                 } else {
@@ -79,10 +94,9 @@ function initializeDatabase() {
 
 // Function to create all necessary tables
 function createTables() {
-    // Create activity tracking table
-    createActivityTrackingTable();
+    console.log('🔧 Creating database tables...');
     
-    // Create other essential tables
+    // Create tables in order of dependencies
     createUsersTable();
     createUserProfilesTable();
     createUserSessionsTable();
@@ -93,6 +107,7 @@ function createTables() {
     createOrdersTable();
     createTestimonialsTable();
     createProductsTable();
+    createActivityTrackingTable();
 }
 
 // Create users table
@@ -107,7 +122,9 @@ function createUsersTable() {
             phone VARCHAR(20),
             role ENUM('customer', 'admin') DEFAULT 'customer',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_login TIMESTAMP NULL
+            last_login TIMESTAMP NULL,
+            INDEX idx_email (email),
+            INDEX idx_role (role)
         )
     `;
     
@@ -116,6 +133,48 @@ function createUsersTable() {
             console.error('Error creating users table:', err);
         } else {
             console.log('✅ Users table ready');
+            
+            // Create default admin user if it doesn't exist
+            createDefaultAdmin();
+        }
+    });
+}
+
+// Create default admin user
+function createDefaultAdmin() {
+    db.query('SELECT * FROM users WHERE role = "admin" LIMIT 1', async (err, results) => {
+        if (err) {
+            console.error('Error checking for admin user:', err);
+            return;
+        }
+        
+        if (results.length === 0) {
+            try {
+                const hashedPassword = await bcrypt.hash('admin123', 10);
+                const insertAdminQuery = `
+                    INSERT INTO users (email, password, first_name, last_name, role)
+                    VALUES ('admin@spicesymphony.com', ?, 'Admin', 'User', 'admin')
+                `;
+                
+                db.query(insertAdminQuery, [hashedPassword], (err, result) => {
+                    if (err) {
+                        console.error('Error creating default admin:', err);
+                    } else {
+                        console.log('✅ Default admin user created');
+                        console.log('📧 Admin Email: admin@spicesymphony.com');
+                        console.log('🔑 Admin Password: admin123');
+                        
+                        // Create profile for admin
+                        db.query('INSERT INTO user_profiles (user_id) VALUES (?)', [result.insertId], (err) => {
+                            if (err) {
+                                console.error('Error creating admin profile:', err);
+                            }
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Error hashing admin password:', error);
+            }
         }
     });
 }
@@ -184,7 +243,9 @@ function createMenuItemsTable() {
             category VARCHAR(100) NOT NULL,
             subcategory VARCHAR(100),
             image VARCHAR(500),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_category (category),
+            INDEX idx_subcategory (subcategory)
         )
     `;
     
@@ -193,7 +254,32 @@ function createMenuItemsTable() {
             console.error('Error creating menu_items table:', err);
         } else {
             console.log('✅ Menu items table ready');
+            insertSampleMenuItems();
         }
+    });
+}
+
+// Insert sample menu items
+function insertSampleMenuItems() {
+    db.query('SELECT COUNT(*) as count FROM menu_items', (err, results) => {
+        if (err || results[0].count > 0) return;
+        
+        const sampleItems = [
+            ['Butter Chicken', 'Creamy tomato-based curry with tender chicken', 350.00, 'Main Course', 'Non-Vegetarian', '/images/butter-chicken.jpg'],
+            ['Paneer Tikka', 'Grilled cottage cheese with spices', 280.00, 'Appetizers', 'Vegetarian', '/images/paneer-tikka.jpg'],
+            ['Biryani', 'Aromatic rice dish with spices and meat', 400.00, 'Main Course', 'Non-Vegetarian', '/images/biryani.jpg'],
+            ['Dal Makhani', 'Rich and creamy black lentil curry', 220.00, 'Main Course', 'Vegetarian', '/images/dal-makhani.jpg'],
+            ['Naan', 'Traditional Indian bread', 60.00, 'Breads', 'Vegetarian', '/images/naan.jpg']
+        ];
+        
+        const insertQuery = 'INSERT INTO menu_items (name, description, price, category, subcategory, image) VALUES ?';
+        db.query(insertQuery, [sampleItems], (err) => {
+            if (err) {
+                console.error('Error inserting sample menu items:', err);
+            } else {
+                console.log('✅ Sample menu items added');
+            }
+        });
     });
 }
 
@@ -208,7 +294,9 @@ function createRestaurantTablesTable() {
             status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
             coordinates_x INT DEFAULT 0,
             coordinates_y INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_section (section),
+            INDEX idx_status (status)
         )
     `;
     
@@ -217,7 +305,34 @@ function createRestaurantTablesTable() {
             console.error('Error creating restaurant_tables table:', err);
         } else {
             console.log('✅ Restaurant tables table ready');
+            insertSampleTables();
         }
+    });
+}
+
+// Insert sample tables
+function insertSampleTables() {
+    db.query('SELECT COUNT(*) as count FROM restaurant_tables', (err, results) => {
+        if (err || results[0].count > 0) return;
+        
+        const sampleTables = [
+            ['T01', 2, 'Main Dining', 'available', 100, 100],
+            ['T02', 4, 'Main Dining', 'available', 200, 100],
+            ['T03', 6, 'Main Dining', 'available', 300, 100],
+            ['T04', 2, 'Patio', 'available', 100, 200],
+            ['T05', 4, 'Patio', 'available', 200, 200],
+            ['VIP01', 8, 'VIP Section', 'available', 100, 300],
+            ['VIP02', 10, 'VIP Section', 'available', 200, 300]
+        ];
+        
+        const insertQuery = 'INSERT INTO restaurant_tables (table_number, capacity, section, status, coordinates_x, coordinates_y) VALUES ?';
+        db.query(insertQuery, [sampleTables], (err) => {
+            if (err) {
+                console.error('Error inserting sample tables:', err);
+            } else {
+                console.log('✅ Sample tables added');
+            }
+        });
     });
 }
 
@@ -233,6 +348,8 @@ function createTableAvailabilityTable() {
             reservation_id INT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY unique_table_datetime (table_id, date, time_slot),
+            INDEX idx_date (date),
+            INDEX idx_time_slot (time_slot),
             FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE CASCADE
         )
     `;
@@ -264,6 +381,8 @@ function createReservationsTable() {
             confirmation_method VARCHAR(20),
             status ENUM('confirmed', 'cancelled', 'completed') DEFAULT 'confirmed',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_date (date),
+            INDEX idx_status (status),
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
             FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL
         )
@@ -290,6 +409,7 @@ function createOrdersTable() {
             items TEXT NOT NULL,
             total DECIMAL(10, 2) NOT NULL,
             order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_order_time (order_time),
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         )
     `;
@@ -312,7 +432,8 @@ function createTestimonialsTable() {
             role VARCHAR(255),
             rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
             review TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_rating (rating)
         )
     `;
     
@@ -335,7 +456,8 @@ function createProductsTable() {
             price DECIMAL(10, 2) NOT NULL,
             category VARCHAR(100) NOT NULL,
             image VARCHAR(500),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_category (category)
         )
     `;
     
@@ -347,7 +469,8 @@ function createProductsTable() {
         }
     });
 }
-// Updated Create activity tracking table function
+
+// Create activity tracking table
 function createActivityTrackingTable() {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS user_activity_log (
@@ -371,6 +494,7 @@ function createActivityTrackingTable() {
             console.error('Error creating activity tracking table:', err);
         } else {
             console.log('✅ Activity tracking table ready');
+            console.log('🎉 Database initialization complete!');
         }
     });
 }
