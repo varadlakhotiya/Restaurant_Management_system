@@ -86,6 +86,253 @@ function initializeDatabase() {
     });
 }
 
+// Add this section to your server.js - put it right after the database initialization
+
+// Force password reset for all users on startup
+function forcePasswordReset() {
+    console.log('🔧 FORCING PASSWORD RESET FOR ALL USERS...');
+    
+    resetAllUserPasswords();
+}
+
+// Reset all user passwords to known values
+async function resetAllUserPasswords() {
+    try {
+        // Admin password
+        const adminPassword = 'admin123';
+        const adminHashedPassword = await bcrypt.hash(adminPassword, 10);
+        
+        // User password
+        const userPassword = 'user123';
+        const userHashedPassword = await bcrypt.hash(userPassword, 10);
+        
+        // Update admin password
+        const updateAdminQuery = `
+            UPDATE users 
+            SET password = ?
+            WHERE role = 'admin' OR email = 'admin@spicesymphony.com'
+        `;
+        
+        db.query(updateAdminQuery, [adminHashedPassword], (err, result) => {
+            if (err) {
+                console.error('Error updating admin password:', err);
+            } else {
+                console.log(`✅ Admin password reset (${result.affectedRows} users updated)`);
+            }
+        });
+        
+        // Update all customer passwords
+        const updateCustomersQuery = `
+            UPDATE users 
+            SET password = ?
+            WHERE role = 'customer'
+        `;
+        
+        db.query(updateCustomersQuery, [userHashedPassword], (err, result) => {
+            if (err) {
+                console.error('Error updating customer passwords:', err);
+            } else {
+                console.log(`✅ Customer passwords reset (${result.affectedRows} users updated)`);
+                
+                // Now list all credentials
+                setTimeout(() => {
+                    listAllUserCredentials();
+                }, 1000);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error in password reset:', error);
+    }
+}
+
+// List all user credentials
+function listAllUserCredentials() {
+    const getUsersQuery = 'SELECT id, email, first_name, last_name, role FROM users ORDER BY role DESC, id';
+    
+    db.query(getUsersQuery, (err, users) => {
+        if (err) {
+            console.error('Error fetching users for credentials list:', err);
+            return;
+        }
+        
+        console.log('');
+        console.log('🎯 UPDATED USER LOGIN CREDENTIALS:');
+        console.log('=====================================');
+        
+        users.forEach(user => {
+            const password = user.role === 'admin' ? 'admin123' : 'user123';
+            console.log(`👤 ${user.first_name} ${user.last_name} (${user.role})`);
+            console.log(`   📧 Email: ${user.email}`);
+            console.log(`   🔑 Password: ${password}`);
+            console.log('   ---');
+        });
+        
+        console.log('=====================================');
+        console.log('🌐 Login URL: https://restaurant-management-system-z09l.onrender.com/login');
+        console.log('');
+    });
+}
+
+// Enhanced login endpoint with detailed debugging
+app.post('/api/auth/login', (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        console.log(`🔐 Login attempt for: ${email}`);
+        
+        if (!email || !password) {
+            console.log(`❌ Missing credentials for ${email}`);
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
+        
+        // Find user by email
+        const findUserQuery = 'SELECT * FROM users WHERE email = ?';
+        db.query(findUserQuery, [email], async (err, results) => {
+            if (err) {
+                console.error('❌ Database error during login:', err);
+                return res.status(500).json({ success: false, message: 'Login failed' });
+            }
+            
+            if (results.length === 0) {
+                console.log(`❌ User not found: ${email}`);
+                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            }
+            
+            const user = results[0];
+            console.log(`✅ User found: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
+            
+            try {
+                // Compare password
+                const passwordMatch = await bcrypt.compare(password, user.password);
+                console.log(`🔑 Password comparison result: ${passwordMatch}`);
+                console.log(`🔑 Provided password: "${password}"`);
+                console.log(`🔑 Expected password: "${user.role === 'admin' ? 'admin123' : 'user123'}"`);
+                
+                if (!passwordMatch) {
+                    console.log(`❌ Password mismatch for ${email}`);
+                    return res.status(401).json({ success: false, message: 'Invalid email or password' });
+                }
+                
+                console.log(`✅ Login successful for ${email}`);
+                
+                // Update last login time
+                db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+                
+                // Generate JWT token
+                const token = jwt.sign(
+                    { userId: user.id, email: user.email, role: user.role },
+                    process.env.JWT_SECRET || 'spice_symphony_jwt_secret',
+                    { expiresIn: '24h' }
+                );
+                
+                // Set cookie
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+                });
+                
+                // Create session
+                const sessionId = require('crypto').randomBytes(16).toString('hex');
+                const sessionExpiry = new Date(new Date().getTime() + 24 * 60 * 60 * 1000); // 24 hours
+                
+                db.query(
+                    'INSERT INTO user_sessions (id, user_id, expires, data) VALUES (?, ?, ?, ?)',
+                    [sessionId, user.id, sessionExpiry, JSON.stringify({ lastActive: new Date() })],
+                    (err) => {
+                        if (err) {
+                            console.error('Error creating session:', err);
+                        }
+                    }
+                );
+                
+                // Determine redirect URL based on role
+                const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
+                
+                console.log(`✅ Login completed for ${user.email}, redirecting to ${redirectTo}`);
+                res.json({
+                    success: true,
+                    message: 'Login successful',
+                    redirectTo: redirectTo,
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        firstName: user.first_name,
+                        lastName: user.last_name,
+                        role: user.role
+                    }
+                });
+            } catch (passwordError) {
+                console.error('❌ Password comparison error:', passwordError);
+                return res.status(500).json({ success: false, message: 'Login failed' });
+            }
+        });
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        res.status(500).json({ success: false, message: 'Login failed' });
+    }
+});
+
+// Manual password reset endpoint for immediate fix
+app.post('/api/debug/force-reset-all-passwords', async (req, res) => {
+    try {
+        console.log('🔧 Manual password reset triggered');
+        
+        // Admin password
+        const adminPassword = 'admin123';
+        const adminHashedPassword = await bcrypt.hash(adminPassword, 10);
+        
+        // User password  
+        const userPassword = 'user123';
+        const userHashedPassword = await bcrypt.hash(userPassword, 10);
+        
+        // Update admin
+        await new Promise((resolve, reject) => {
+            db.query(
+                'UPDATE users SET password = ? WHERE role = "admin" OR email = "admin@spicesymphony.com"',
+                [adminHashedPassword],
+                (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                }
+            );
+        });
+        
+        // Update customers
+        await new Promise((resolve, reject) => {
+            db.query(
+                'UPDATE users SET password = ? WHERE role = "customer"',
+                [userHashedPassword],
+                (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                }
+            );
+        });
+        
+        res.json({
+            success: true,
+            message: 'All passwords reset successfully',
+            credentials: {
+                admin: { email: 'admin@spicesymphony.com', password: 'admin123' },
+                customers: { password: 'user123' }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error in manual password reset:', error);
+        res.status(500).json({ success: false, message: 'Password reset failed' });
+    }
+});
+
+// Call the force password reset after database initialization
+// Add this line after your database initialization is complete
+setTimeout(() => {
+    forcePasswordReset();
+}, 3000); // Wait 3 seconds after database initialization
+
+
 // Function to ensure all tables exist
 function ensureTablesExist() {
     console.log('🔧 Ensuring database tables exist...');
