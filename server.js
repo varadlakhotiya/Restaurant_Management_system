@@ -10,7 +10,6 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const app = express();
 const fs = require('fs');
-const path = require('path');
 
 // Use environment variables for database configuration
 const db = mysql.createConnection({
