@@ -86,6 +86,497 @@ function initializeDatabase() {
     });
 }
 
+// Function to ensure all tables exist
+function ensureTablesExist() {
+    console.log('🔧 Ensuring database tables exist...');
+    
+    // Create all tables
+    createAllTables();
+}
+
+// Create all required tables
+function createAllTables() {
+    // Users table with correct schema
+    const createUsersTableQuery = `
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(100) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            first_name VARCHAR(50) NOT NULL,
+            last_name VARCHAR(50) NOT NULL,
+            phone VARCHAR(20),
+            role ENUM('customer', 'admin', 'staff') DEFAULT 'customer',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP NULL
+        )
+    `;
+    
+    db.query(createUsersTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating users table:', err);
+        } else {
+            console.log('✅ Users table ready');
+        }
+    });
+
+    // User profiles table
+    const userProfilesQuery = `
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            user_id INT PRIMARY KEY,
+            address TEXT,
+            city VARCHAR(50),
+            state VARCHAR(50),
+            postal_code VARCHAR(20),
+            preferred_payment_method VARCHAR(50),
+            dietary_preferences TEXT,
+            allergies TEXT,
+            favorite_dishes TEXT,
+            birthday DATE,
+            anniversary DATE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `;
+    
+    db.query(userProfilesQuery, (err) => {
+        if (err) {
+            console.error('Error creating user_profiles table:', err);
+        } else {
+            console.log('✅ User profiles table ready');
+        }
+    });
+
+    // User sessions table
+    const userSessionsQuery = `
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            id VARCHAR(255) PRIMARY KEY,
+            user_id INT NOT NULL,
+            expires TIMESTAMP NOT NULL,
+            data TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `;
+    
+    db.query(userSessionsQuery, (err) => {
+        if (err) {
+            console.error('Error creating user_sessions table:', err);
+        } else {
+            console.log('✅ User sessions table ready');
+        }
+    });
+
+    // Restaurant tables
+    const restaurantTablesQuery = `
+        CREATE TABLE IF NOT EXISTS restaurant_tables (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            table_number VARCHAR(10) NOT NULL UNIQUE,
+            capacity INT NOT NULL,
+            section ENUM('indoor', 'outdoor') NOT NULL,
+            status ENUM('available', 'reserved', 'occupied', 'maintenance') DEFAULT 'available',
+            coordinates_x INT,
+            coordinates_y INT
+        )
+    `;
+    
+    db.query(restaurantTablesQuery, (err) => {
+        if (err) {
+            console.error('Error creating restaurant_tables table:', err);
+        } else {
+            console.log('✅ Restaurant tables table ready');
+        }
+    });
+
+    // Table availability
+    const tableAvailabilityQuery = `
+        CREATE TABLE IF NOT EXISTS table_availability (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            table_id INT NOT NULL,
+            date DATE NOT NULL,
+            time_slot TIME NOT NULL,
+            is_available TINYINT(1) DEFAULT 1,
+            reservation_id INT,
+            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_table_datetime (table_id, date, time_slot)
+        )
+    `;
+    
+    db.query(tableAvailabilityQuery, (err) => {
+        if (err) {
+            console.error('Error creating table_availability table:', err);
+        } else {
+            console.log('✅ Table availability table ready');
+        }
+    });
+
+    // Reservations table
+    const reservationsQuery = `
+        CREATE TABLE IF NOT EXISTS reservations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            date DATE NOT NULL,
+            time TIME NOT NULL,
+            guests INT NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            contact VARCHAR(20) NOT NULL,
+            email VARCHAR(100) NOT NULL,
+            seating ENUM('indoor', 'outdoor', 'no-preference') NOT NULL,
+            special_requests TEXT,
+            status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
+            confirmation_method ENUM('sms', 'email') NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            user_id INT,
+            table_id INT,
+            estimated_duration INT DEFAULT 120,
+            actual_arrival_time TIMESTAMP NULL,
+            actual_departure_time TIMESTAMP NULL,
+            total_spent DECIMAL(10,2) DEFAULT 0.00,
+            feedback_rating INT,
+            feedback_notes TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL
+        )
+    `;
+    
+    db.query(reservationsQuery, (err) => {
+        if (err) {
+            console.error('Error creating reservations table:', err);
+        } else {
+            console.log('✅ Reservations table ready');
+        }
+    });
+
+    // Menu items table
+    const menuItemsQuery = `
+        CREATE TABLE IF NOT EXISTS menu_items (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT NOT NULL,
+            price DECIMAL(10,2) NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            subcategory VARCHAR(100),
+            image VARCHAR(255) NOT NULL,
+            calories INT,
+            ingredients TEXT,
+            allergens TEXT,
+            is_vegan TINYINT(1) DEFAULT 0,
+            is_vegetarian TINYINT(1) DEFAULT 1,
+            spice_level ENUM('mild', 'medium', 'spicy', 'very_spicy') DEFAULT 'medium',
+            preparation_time INT,
+            is_available TINYINT(1) DEFAULT 1
+        )
+    `;
+    
+    db.query(menuItemsQuery, (err) => {
+        if (err) {
+            console.error('Error creating menu_items table:', err);
+        } else {
+            console.log('✅ Menu items table ready');
+        }
+    });
+
+    // Orders table
+    const ordersQuery = `
+        CREATE TABLE IF NOT EXISTS orders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            table_number VARCHAR(50) NOT NULL,
+            special_requests TEXT,
+            items TEXT NOT NULL,
+            total DECIMAL(10,2) NOT NULL,
+            order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            user_id INT,
+            payment_method VARCHAR(50),
+            payment_status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
+            order_type ENUM('dine_in', 'takeaway', 'delivery') DEFAULT 'dine_in',
+            estimated_ready_time TIMESTAMP NULL,
+            actual_ready_time TIMESTAMP NULL,
+            delivery_address TEXT,
+            order_status ENUM('pending', 'confirmed', 'preparing', 'ready', 'served', 'completed', 'cancelled') DEFAULT 'pending',
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    `;
+    
+    db.query(ordersQuery, (err) => {
+        if (err) {
+            console.error('Error creating orders table:', err);
+        } else {
+            console.log('✅ Orders table ready');
+        }
+    });
+
+    // Products table
+    const productsQuery = `
+        CREATE TABLE IF NOT EXISTS products (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            category VARCHAR(50) NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            description TEXT,
+            price DECIMAL(10,2) NOT NULL,
+            image_url VARCHAR(255),
+            rating DECIMAL(3,2),
+            review_count INT,
+            badge VARCHAR(50),
+            stock_availability VARCHAR(50),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            sku VARCHAR(100),
+            category_id INT,
+            is_active TINYINT(1) DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `;
+    
+    db.query(productsQuery, (err) => {
+        if (err) {
+            console.error('Error creating products table:', err);
+        } else {
+            console.log('✅ Products table ready');
+        }
+    });
+
+    // Testimonials table
+    const testimonialsQuery = `
+        CREATE TABLE IF NOT EXISTS testimonials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            role VARCHAR(255) NOT NULL,
+            rating INT NOT NULL,
+            review TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    
+    db.query(testimonialsQuery, (err) => {
+        if (err) {
+            console.error('Error creating testimonials table:', err);
+        } else {
+            console.log('✅ Testimonials table ready');
+        }
+    });
+
+    // Activity tracking table
+    const activityTrackingQuery = `
+        CREATE TABLE IF NOT EXISTS user_activity_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            session_id VARCHAR(255),
+            activity_type VARCHAR(50) NOT NULL,
+            activity_details JSON,
+            ip_address VARCHAR(45),
+            user_agent TEXT,
+            page_url VARCHAR(500),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id),
+            INDEX idx_session_id (session_id),
+            INDEX idx_activity_type (activity_type),
+            INDEX idx_created_at (created_at)
+        )
+    `;
+    
+    db.query(activityTrackingQuery, (err) => {
+        if (err) {
+            console.error('Error creating activity tracking table:', err);
+        } else {
+            console.log('✅ Activity tracking table ready');
+            console.log('🎉 Database initialization complete!');
+            
+            // Now debug and fix users after a small delay
+            setTimeout(() => {
+                debugAndFixUsers();
+            }, 2000);
+        }
+    });
+}
+
+// Debug function to check existing users and fix admin
+function debugAndFixUsers() {
+    console.log('🔍 DEBUGGING USER DATABASE...');
+    
+    // First, let's see what users exist
+    const getUsersQuery = 'SELECT id, email, first_name, last_name, role, created_at FROM users ORDER BY id';
+    
+    db.query(getUsersQuery, (err, users) => {
+        if (err) {
+            console.error('Error fetching users:', err);
+            return;
+        }
+        
+        console.log('👥 EXISTING USERS IN DATABASE:');
+        console.log('=====================================');
+        
+        if (users.length === 0) {
+            console.log('❌ No users found in database');
+            createFreshAdminUser();
+        } else {
+            users.forEach(user => {
+                console.log(`ID: ${user.id} | Email: ${user.email} | Name: ${user.first_name} ${user.last_name} | Role: ${user.role}`);
+            });
+            
+            console.log('=====================================');
+            
+            // Check if we have an admin user
+            const hasAdmin = users.some(user => user.role === 'admin');
+            
+            if (!hasAdmin) {
+                console.log('⚠️  No admin user found. Creating one...');
+                createFreshAdminUser();
+            } else {
+                console.log('✅ Admin user exists');
+                // Let's fix the existing admin user password
+                resetAdminPassword();
+            }
+            
+            // Give instructions for existing users
+            console.log('📋 EXISTING USER LOGIN INSTRUCTIONS:');
+            users.forEach(user => {
+                if (user.role !== 'admin') {
+                    console.log(`👤 ${user.email} - Try password: "user123" (default password set)`);
+                }
+            });
+        }
+    });
+}
+
+// Create a fresh admin user
+async function createFreshAdminUser() {
+    try {
+        const adminPassword = 'admin123';
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        
+        const insertAdminQuery = `
+            INSERT INTO users (email, password, first_name, last_name, role)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+            password = VALUES(password),
+            role = VALUES(role)
+        `;
+        
+        db.query(insertAdminQuery, [
+            'admin@spicesymphony.com', 
+            hashedPassword, 
+            'Admin', 
+            'User', 
+            'admin'
+        ], (err, result) => {
+            if (err) {
+                console.error('Error creating/updating admin:', err);
+            } else {
+                console.log('✅ Admin user created/updated successfully!');
+                console.log('🎯 ADMIN LOGIN CREDENTIALS:');
+                console.log('📧 Email: admin@spicesymphony.com');
+                console.log('🔑 Password: admin123');
+                console.log('🌐 URL: https://restaurant-management-system-z09l.onrender.com/login');
+                
+                // Ensure user profile exists
+                ensureUserProfile('admin@spicesymphony.com');
+            }
+        });
+    } catch (error) {
+        console.error('Error hashing admin password:', error);
+    }
+}
+
+// Reset admin password
+async function resetAdminPassword() {
+    try {
+        const adminPassword = 'admin123';
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        
+        const updateAdminQuery = `
+            UPDATE users 
+            SET password = ?, role = 'admin'
+            WHERE email = 'admin@spicesymphony.com' OR role = 'admin'
+        `;
+        
+        db.query(updateAdminQuery, [hashedPassword], (err, result) => {
+            if (err) {
+                console.error('Error updating admin password:', err);
+            } else {
+                console.log('✅ Admin password reset successfully!');
+                console.log('🎯 ADMIN LOGIN CREDENTIALS:');
+                console.log('📧 Email: admin@spicesymphony.com');
+                console.log('🔑 Password: admin123');
+                console.log('🌐 URL: https://restaurant-management-system-z09l.onrender.com/login');
+                
+                // Set default passwords for existing users
+                setDefaultPasswordsForExistingUsers();
+            }
+        });
+    } catch (error) {
+        console.error('Error hashing new admin password:', error);
+    }
+}
+
+// Set default passwords for existing users
+async function setDefaultPasswordsForExistingUsers() {
+    try {
+        const defaultPassword = 'user123';
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+        
+        // Update all non-admin users with the default password
+        const updateUsersQuery = `
+            UPDATE users 
+            SET password = ?
+            WHERE role != 'admin'
+        `;
+        
+        db.query(updateUsersQuery, [hashedPassword], (err, result) => {
+            if (err) {
+                console.error('Error updating user passwords:', err);
+            } else {
+                console.log(`✅ Updated passwords for ${result.affectedRows} existing users`);
+                console.log('🔑 Default password for existing users: user123');
+                
+                // List all users with their login info
+                listAllUserCredentials();
+            }
+        });
+    } catch (error) {
+        console.error('Error setting default passwords:', error);
+    }
+}
+
+// List all user credentials
+function listAllUserCredentials() {
+    const getUsersQuery = 'SELECT email, first_name, last_name, role FROM users ORDER BY role DESC, id';
+    
+    db.query(getUsersQuery, (err, users) => {
+        if (err) {
+            console.error('Error fetching users for credentials list:', err);
+            return;
+        }
+        
+        console.log('🎯 ALL USER LOGIN CREDENTIALS:');
+        console.log('=====================================');
+        
+        users.forEach(user => {
+            const password = user.role === 'admin' ? 'admin123' : 'user123';
+            console.log(`👤 ${user.first_name} ${user.last_name} (${user.role})`);
+            console.log(`   📧 Email: ${user.email}`);
+            console.log(`   🔑 Password: ${password}`);
+            console.log('   ---');
+        });
+        
+        console.log('=====================================');
+        console.log('🌐 Login URL: https://restaurant-management-system-z09l.onrender.com/login');
+    });
+}
+
+// Ensure user profile exists for an email
+function ensureUserProfile(email) {
+    const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
+    
+    db.query(getUserIdQuery, [email], (err, results) => {
+        if (err || results.length === 0) return;
+        
+        const userId = results[0].id;
+        const createProfileQuery = 'INSERT IGNORE INTO user_profiles (user_id) VALUES (?)';
+        
+        db.query(createProfileQuery, [userId], (err) => {
+            if (err) {
+                console.error('Error creating user profile:', err);
+            }
+        });
+    });
+}
+
 // Function to ensure all tables exist (matching your existing schema)
 function ensureTablesExist() {
     console.log('🔧 Ensuring database tables exist...');
@@ -675,14 +1166,36 @@ app.get('/admin', authenticateAdmin, (req, res) => {
 });
 
 // ==== AUTHENTICATION API ENDPOINTS ====
-// User registration endpoint
+// Replace your existing registration endpoint with this improved version
+
+// User registration endpoint with better error handling
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password, firstName, lastName, phone } = req.body;
         
         // Validate required fields
         if (!email || !password || !firstName || !lastName) {
-            return res.status(400).json({ success: false, message: 'All required fields must be provided' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'All required fields must be provided' 
+            });
+        }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Please enter a valid email address' 
+            });
+        }
+        
+        // Validate password length
+        if (password.length < 6) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Password must be at least 6 characters long' 
+            });
         }
         
         // Check if user already exists
@@ -690,24 +1203,33 @@ app.post('/api/auth/register', async (req, res) => {
         db.query(userExistsQuery, [email], async (err, results) => {
             if (err) {
                 console.error('Error checking existing user:', err);
-                return res.status(500).json({ success: false, message: 'Registration failed' });
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Registration failed. Please try again.' 
+                });
             }
             
             if (results.length > 0) {
-                return res.status(400).json({ success: false, message: 'Email already registered' });
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `An account with email ${email} already exists. Please use a different email or try logging in.` 
+                });
             }
             
-            // Hash password
-            const hashedPassword = await bcrypt.hash(password, 10);
-            
-            // Begin transaction
-            db.beginTransaction(async (err) => {
-                if (err) {
-                    console.error('Error starting transaction:', err);
-                    return res.status(500).json({ success: false, message: 'Registration failed' });
-                }
+            try {
+                // Hash password
+                const hashedPassword = await bcrypt.hash(password, 10);
                 
-                try {
+                // Begin transaction
+                db.beginTransaction(async (err) => {
+                    if (err) {
+                        console.error('Error starting transaction:', err);
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: 'Registration failed. Please try again.' 
+                        });
+                    }
+                    
                     // Insert new user
                     const insertUserQuery = `
                         INSERT INTO users (email, password, first_name, last_name, phone)
@@ -718,7 +1240,19 @@ app.post('/api/auth/register', async (req, res) => {
                         if (err) {
                             return db.rollback(() => {
                                 console.error('Error registering user:', err);
-                                res.status(500).json({ success: false, message: 'Registration failed' });
+                                
+                                // Check if it's a duplicate entry error
+                                if (err.code === 'ER_DUP_ENTRY') {
+                                    res.status(400).json({ 
+                                        success: false, 
+                                        message: `An account with email ${email} already exists. Please use a different email or try logging in.` 
+                                    });
+                                } else {
+                                    res.status(500).json({ 
+                                        success: false, 
+                                        message: 'Registration failed. Please try again.' 
+                                    });
+                                }
                             });
                         }
                         
@@ -730,7 +1264,10 @@ app.post('/api/auth/register', async (req, res) => {
                             if (err) {
                                 return db.rollback(() => {
                                     console.error('Error creating user profile:', err);
-                                    res.status(500).json({ success: false, message: 'Registration failed' });
+                                    res.status(500).json({ 
+                                        success: false, 
+                                        message: 'Registration failed. Please try again.' 
+                                    });
                                 });
                             }
                             
@@ -739,30 +1276,80 @@ app.post('/api/auth/register', async (req, res) => {
                                 if (err) {
                                     return db.rollback(() => {
                                         console.error('Error committing transaction:', err);
-                                        res.status(500).json({ success: false, message: 'Registration failed' });
+                                        res.status(500).json({ 
+                                            success: false, 
+                                            message: 'Registration failed. Please try again.' 
+                                        });
                                     });
                                 }
                                 
                                 console.log('User registered successfully:', userId);
                                 res.json({ 
                                     success: true, 
-                                    message: 'Registration successful',
+                                    message: 'Registration successful! You can now log in with your credentials.',
                                     redirectTo: '/login'
                                 });
                             });
                         });
                     });
-                } catch (error) {
-                    db.rollback(() => {
-                        console.error('Registration error in transaction:', error);
-                        res.status(500).json({ success: false, message: 'Registration failed' });
-                    });
-                }
-            });
+                });
+            } catch (error) {
+                console.error('Registration error in password hashing:', error);
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Registration failed. Please try again.' 
+                });
+            }
         });
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ success: false, message: 'Registration failed' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Registration failed. Please try again.' 
+        });
+    }
+});
+
+// Add debug endpoints for troubleshooting (you can remove these later)
+app.get('/api/debug/users', (req, res) => {
+    const getUsersQuery = 'SELECT id, email, first_name, last_name, role, created_at FROM users ORDER BY id';
+    
+    db.query(getUsersQuery, (err, users) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Error fetching users' });
+        }
+        
+        res.json({ success: true, users });
+    });
+});
+
+app.post('/api/debug/reset-password', async (req, res) => {
+    const { email, newPassword } = req.body;
+    
+    if (!email || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Email and new password required' });
+    }
+    
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const updatePasswordQuery = 'UPDATE users SET password = ? WHERE email = ?';
+        
+        db.query(updatePasswordQuery, [hashedPassword, email], (err, result) => {
+            if (err) {
+                return res.status(500).json({ success: false, message: 'Error updating password' });
+            }
+            
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+            
+            res.json({ 
+                success: true, 
+                message: `Password updated for ${email}` 
+            });
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error hashing password' });
     }
 });
 
