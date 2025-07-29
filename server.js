@@ -23,7 +23,6 @@ const db = mysql.createConnection({
     } : false,
     charset: 'utf8mb4',
     connectTimeout: 60000,
-    // Remove invalid options for mysql2
     multipleStatements: true
 });
 
@@ -47,7 +46,7 @@ db.connect((err) => {
         console.log('✅ MySQL connected successfully!');
         console.log(`📊 Connected to database: ${process.env.DB_NAME} on ${process.env.DB_HOST}:${process.env.DB_PORT}`);
         
-        // Create database and tables after successful connection
+        // Initialize database
         initializeDatabase();
     }
 });
@@ -68,8 +67,8 @@ function initializeDatabase() {
     db.query('CREATE DATABASE IF NOT EXISTS spice_symphony', (err) => {
         if (err) {
             console.error('Error creating database:', err);
-            console.log('📝 Continuing with default database...');
-            createTables();
+            console.log('📝 Continuing with current database...');
+            ensureTablesExist();
         } else {
             console.log('✅ Database spice_symphony ensured');
             
@@ -77,96 +76,132 @@ function initializeDatabase() {
             db.query('USE spice_symphony', (err) => {
                 if (err) {
                     console.error('Error switching to spice_symphony database:', err);
-                    console.log('📝 Continuing with default database...');
-                    createTables();
+                    console.log('📝 Continuing with current database...');
                 } else {
                     console.log('✅ Switched to spice_symphony database');
-                    createTables();
                 }
+                ensureTablesExist();
             });
         }
     });
 }
 
-// Function to create all necessary tables
-function createTables() {
-    console.log('🔧 Creating database tables...');
+// Function to ensure all tables exist (matching your existing schema)
+function ensureTablesExist() {
+    console.log('🔧 Ensuring database tables exist...');
     
-    // Create tables in order of dependencies
-    createUsersTable();
+    // Check if users table exists and has correct structure
+    checkAndCreateUsersTable();
 }
 
-// Create users table and then create other tables
-function createUsersTable() {
-    const createTableQuery = `
+// Check and create users table with correct schema
+function checkAndCreateUsersTable() {
+    const createUsersTableQuery = `
         CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) UNIQUE NOT NULL,
+            email VARCHAR(100) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
-            first_name VARCHAR(100) NOT NULL,
-            last_name VARCHAR(100) NOT NULL,
+            first_name VARCHAR(50) NOT NULL,
+            last_name VARCHAR(50) NOT NULL,
             phone VARCHAR(20),
-            role ENUM('customer', 'admin') DEFAULT 'customer',
+            role ENUM('customer', 'admin', 'staff') DEFAULT 'customer',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_login TIMESTAMP NULL,
-            INDEX idx_email (email),
-            INDEX idx_role (role)
+            last_login TIMESTAMP NULL
         )
     `;
     
-    db.query(createTableQuery, (err) => {
+    db.query(createUsersTableQuery, (err) => {
         if (err) {
             console.error('Error creating users table:', err);
         } else {
             console.log('✅ Users table ready');
-            createDefaultAdmin();
-            createOtherTables();
+            
+            // Now check for admin user and create if needed
+            setTimeout(() => {
+                createDefaultAdminUser();
+            }, 1000); // Small delay to ensure table is fully created
+            
+            // Create other tables
+            createOtherRequiredTables();
         }
     });
 }
 
 // Create default admin user
-function createDefaultAdmin() {
-    db.query('SELECT * FROM users WHERE role = "admin" LIMIT 1', async (err, results) => {
+function createDefaultAdminUser() {
+    // First check if any admin user exists
+    const checkAdminQuery = `SELECT id FROM users WHERE role = 'admin' LIMIT 1`;
+    
+    db.query(checkAdminQuery, async (err, results) => {
         if (err) {
             console.error('Error checking for admin user:', err);
             return;
         }
         
-        if (results.length === 0) {
+        if (results && results.length === 0) {
             try {
-                const hashedPassword = await bcrypt.hash('admin123', 10);
+                const adminPassword = 'admin123';
+                const hashedPassword = await bcrypt.hash(adminPassword, 10);
+                
                 const insertAdminQuery = `
                     INSERT INTO users (email, password, first_name, last_name, role)
-                    VALUES ('admin@spicesymphony.com', ?, 'Admin', 'User', 'admin')
+                    VALUES (?, ?, ?, ?, ?)
                 `;
                 
-                db.query(insertAdminQuery, [hashedPassword], (err, result) => {
+                db.query(insertAdminQuery, [
+                    'admin@spicesymphony.com', 
+                    hashedPassword, 
+                    'Admin', 
+                    'User', 
+                    'admin'
+                ], (err, result) => {
                     if (err) {
                         console.error('Error creating default admin:', err);
                     } else {
-                        console.log('✅ Default admin user created');
-                        console.log('📧 Admin Email: admin@spicesymphony.com');
-                        console.log('🔑 Admin Password: admin123');
+                        console.log('✅ Default admin user created successfully!');
+                        console.log('🎯 LOGIN CREDENTIALS:');
+                        console.log('📧 Email: admin@spicesymphony.com');
+                        console.log('🔑 Password: admin123');
+                        console.log('🌐 Admin Panel: https://restaurant-management-system-z09l.onrender.com/admin');
+                        
+                        // Create user profile for admin
+                        createUserProfile(result.insertId);
                     }
                 });
             } catch (error) {
                 console.error('Error hashing admin password:', error);
             }
+        } else {
+            console.log('✅ Admin user already exists');
+            console.log('🌐 Admin Panel: https://restaurant-management-system-z09l.onrender.com/admin');
         }
     });
 }
 
-// Create other essential tables
-function createOtherTables() {
+// Create user profile for a user
+function createUserProfile(userId) {
+    const createProfileQuery = `
+        INSERT IGNORE INTO user_profiles (user_id) VALUES (?)
+    `;
+    
+    db.query(createProfileQuery, [userId], (err) => {
+        if (err) {
+            console.error('Error creating user profile:', err);
+        } else {
+            console.log('✅ User profile created for admin');
+        }
+    });
+}
+
+// Create other required tables
+function createOtherRequiredTables() {
     // User profiles table
     const userProfilesQuery = `
         CREATE TABLE IF NOT EXISTS user_profiles (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT UNIQUE NOT NULL,
+            user_id INT PRIMARY KEY,
             address TEXT,
-            city VARCHAR(100),
-            state VARCHAR(100),
+            city VARCHAR(50),
+            state VARCHAR(50),
             postal_code VARCHAR(20),
             preferred_payment_method VARCHAR(50),
             dietary_preferences TEXT,
@@ -174,8 +209,6 @@ function createOtherTables() {
             favorite_dishes TEXT,
             birthday DATE,
             anniversary DATE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     `;
@@ -195,7 +228,6 @@ function createOtherTables() {
             user_id INT NOT NULL,
             expires TIMESTAMP NOT NULL,
             data TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     `;
@@ -208,44 +240,16 @@ function createOtherTables() {
         }
     });
 
-    // Menu items table
-    const menuItemsQuery = `
-        CREATE TABLE IF NOT EXISTS menu_items (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            price DECIMAL(10, 2) NOT NULL,
-            category VARCHAR(100) NOT NULL,
-            subcategory VARCHAR(100),
-            image VARCHAR(500),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_category (category),
-            INDEX idx_subcategory (subcategory)
-        )
-    `;
-    
-    db.query(menuItemsQuery, (err) => {
-        if (err) {
-            console.error('Error creating menu_items table:', err);
-        } else {
-            console.log('✅ Menu items table ready');
-            insertSampleMenuItems();
-        }
-    });
-
-    // Restaurant tables table
+    // Restaurant tables
     const restaurantTablesQuery = `
         CREATE TABLE IF NOT EXISTS restaurant_tables (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            table_number VARCHAR(20) UNIQUE NOT NULL,
+            table_number VARCHAR(10) NOT NULL UNIQUE,
             capacity INT NOT NULL,
-            section VARCHAR(50) NOT NULL,
-            status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
-            coordinates_x INT DEFAULT 0,
-            coordinates_y INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_section (section),
-            INDEX idx_status (status)
+            section ENUM('indoor', 'outdoor') NOT NULL,
+            status ENUM('available', 'reserved', 'occupied', 'maintenance') DEFAULT 'available',
+            coordinates_x INT,
+            coordinates_y INT
         )
     `;
     
@@ -254,24 +258,21 @@ function createOtherTables() {
             console.error('Error creating restaurant_tables table:', err);
         } else {
             console.log('✅ Restaurant tables table ready');
-            insertSampleTables();
+            insertSampleDataIfNeeded();
         }
     });
 
-    // Table availability table
+    // Table availability
     const tableAvailabilityQuery = `
         CREATE TABLE IF NOT EXISTS table_availability (
             id INT AUTO_INCREMENT PRIMARY KEY,
             table_id INT NOT NULL,
             date DATE NOT NULL,
             time_slot TIME NOT NULL,
-            is_available BOOLEAN DEFAULT TRUE,
-            reservation_id INT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_table_datetime (table_id, date, time_slot),
-            INDEX idx_date (date),
-            INDEX idx_time_slot (time_slot),
-            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE CASCADE
+            is_available TINYINT(1) DEFAULT 1,
+            reservation_id INT,
+            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_table_datetime (table_id, date, time_slot)
         )
     `;
     
@@ -287,21 +288,25 @@ function createOtherTables() {
     const reservationsQuery = `
         CREATE TABLE IF NOT EXISTS reservations (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NULL,
-            table_id INT NULL,
             date DATE NOT NULL,
             time TIME NOT NULL,
             guests INT NOT NULL,
-            name VARCHAR(255) NOT NULL,
+            name VARCHAR(100) NOT NULL,
             contact VARCHAR(20) NOT NULL,
-            email VARCHAR(255) NOT NULL,
-            seating VARCHAR(50),
+            email VARCHAR(100) NOT NULL,
+            seating ENUM('indoor', 'outdoor', 'no-preference') NOT NULL,
             special_requests TEXT,
-            confirmation_method VARCHAR(20),
-            status ENUM('confirmed', 'cancelled', 'completed') DEFAULT 'confirmed',
+            status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
+            confirmation_method ENUM('sms', 'email') NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_date (date),
-            INDEX idx_status (status),
+            user_id INT,
+            table_id INT,
+            estimated_duration INT DEFAULT 120,
+            actual_arrival_time TIMESTAMP NULL,
+            actual_departure_time TIMESTAMP NULL,
+            total_spent DECIMAL(10,2) DEFAULT 0.00,
+            feedback_rating INT,
+            feedback_notes TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
             FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL
         )
@@ -315,18 +320,53 @@ function createOtherTables() {
         }
     });
 
+    // Menu items table (matching your schema)
+    const menuItemsQuery = `
+        CREATE TABLE IF NOT EXISTS menu_items (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT NOT NULL,
+            price DECIMAL(10,2) NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            subcategory VARCHAR(100),
+            image VARCHAR(255) NOT NULL,
+            calories INT,
+            ingredients TEXT,
+            allergens TEXT,
+            is_vegan TINYINT(1) DEFAULT 0,
+            is_vegetarian TINYINT(1) DEFAULT 1,
+            spice_level ENUM('mild', 'medium', 'spicy', 'very_spicy') DEFAULT 'medium',
+            preparation_time INT,
+            is_available TINYINT(1) DEFAULT 1
+        )
+    `;
+    
+    db.query(menuItemsQuery, (err) => {
+        if (err) {
+            console.error('Error creating menu_items table:', err);
+        } else {
+            console.log('✅ Menu items table ready');
+        }
+    });
+
     // Orders table
     const ordersQuery = `
         CREATE TABLE IF NOT EXISTS orders (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NULL,
             name VARCHAR(255) NOT NULL,
             table_number VARCHAR(50) NOT NULL,
             special_requests TEXT,
             items TEXT NOT NULL,
-            total DECIMAL(10, 2) NOT NULL,
+            total DECIMAL(10,2) NOT NULL,
             order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_order_time (order_time),
+            user_id INT,
+            payment_method VARCHAR(50),
+            payment_status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
+            order_type ENUM('dine_in', 'takeaway', 'delivery') DEFAULT 'dine_in',
+            estimated_ready_time TIMESTAMP NULL,
+            actual_ready_time TIMESTAMP NULL,
+            delivery_address TEXT,
+            order_status ENUM('pending', 'confirmed', 'preparing', 'ready', 'served', 'completed', 'cancelled') DEFAULT 'pending',
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         )
     `;
@@ -339,38 +379,24 @@ function createOtherTables() {
         }
     });
 
-    // Testimonials table
-    const testimonialsQuery = `
-        CREATE TABLE IF NOT EXISTS testimonials (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            role VARCHAR(255),
-            rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
-            review TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_rating (rating)
-        )
-    `;
-    
-    db.query(testimonialsQuery, (err) => {
-        if (err) {
-            console.error('Error creating testimonials table:', err);
-        } else {
-            console.log('✅ Testimonials table ready');
-        }
-    });
-
     // Products table
     const productsQuery = `
         CREATE TABLE IF NOT EXISTS products (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
+            category VARCHAR(50) NOT NULL,
+            name VARCHAR(100) NOT NULL,
             description TEXT,
-            price DECIMAL(10, 2) NOT NULL,
-            category VARCHAR(100) NOT NULL,
-            image VARCHAR(500),
+            price DECIMAL(10,2) NOT NULL,
+            image_url VARCHAR(255),
+            rating DECIMAL(3,2),
+            review_count INT,
+            badge VARCHAR(50),
+            stock_availability VARCHAR(50),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_category (category)
+            sku VARCHAR(100),
+            category_id INT,
+            is_active TINYINT(1) DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     `;
     
@@ -382,16 +408,37 @@ function createOtherTables() {
         }
     });
 
-    // Activity tracking table (without foreign key constraint to avoid issues)
+    // Testimonials table
+    const testimonialsQuery = `
+        CREATE TABLE IF NOT EXISTS testimonials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            role VARCHAR(255) NOT NULL,
+            rating INT NOT NULL,
+            review TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    
+    db.query(testimonialsQuery, (err) => {
+        if (err) {
+            console.error('Error creating testimonials table:', err);
+        } else {
+            console.log('✅ Testimonials table ready');
+        }
+    });
+
+    // Activity tracking table (simplified)
     const activityTrackingQuery = `
         CREATE TABLE IF NOT EXISTS user_activity_log (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NULL,
-            session_id VARCHAR(255) NOT NULL,
-            activity_type VARCHAR(100) NOT NULL,
-            activity_details TEXT,
+            user_id INT,
+            session_id VARCHAR(255),
+            activity_type VARCHAR(50) NOT NULL,
+            activity_details JSON,
             ip_address VARCHAR(45),
             user_agent TEXT,
+            page_url VARCHAR(500),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_user_id (user_id),
             INDEX idx_session_id (session_id),
@@ -410,43 +457,21 @@ function createOtherTables() {
     });
 }
 
-// Insert sample menu items
-function insertSampleMenuItems() {
-    db.query('SELECT COUNT(*) as count FROM menu_items', (err, results) => {
-        if (err || results[0].count > 0) return;
-        
-        const sampleItems = [
-            ['Butter Chicken', 'Creamy tomato-based curry with tender chicken', 350.00, 'Main Course', 'Non-Vegetarian', '/images/butter-chicken.jpg'],
-            ['Paneer Tikka', 'Grilled cottage cheese with spices', 280.00, 'Appetizers', 'Vegetarian', '/images/paneer-tikka.jpg'],
-            ['Biryani', 'Aromatic rice dish with spices and meat', 400.00, 'Main Course', 'Non-Vegetarian', '/images/biryani.jpg'],
-            ['Dal Makhani', 'Rich and creamy black lentil curry', 220.00, 'Main Course', 'Vegetarian', '/images/dal-makhani.jpg'],
-            ['Naan', 'Traditional Indian bread', 60.00, 'Breads', 'Vegetarian', '/images/naan.jpg']
-        ];
-        
-        const insertQuery = 'INSERT INTO menu_items (name, description, price, category, subcategory, image) VALUES ?';
-        db.query(insertQuery, [sampleItems], (err) => {
-            if (err) {
-                console.error('Error inserting sample menu items:', err);
-            } else {
-                console.log('✅ Sample menu items added');
-            }
-        });
-    });
-}
-
-// Insert sample tables
-function insertSampleTables() {
+// Insert sample data if tables are empty
+function insertSampleDataIfNeeded() {
+    // Check if restaurant_tables has data
     db.query('SELECT COUNT(*) as count FROM restaurant_tables', (err, results) => {
-        if (err || results[0].count > 0) return;
+        if (err || !results || results[0].count > 0) return;
         
+        console.log('📝 Inserting sample restaurant tables...');
         const sampleTables = [
-            ['T01', 2, 'Main Dining', 'available', 100, 100],
-            ['T02', 4, 'Main Dining', 'available', 200, 100],
-            ['T03', 6, 'Main Dining', 'available', 300, 100],
-            ['T04', 2, 'Patio', 'available', 100, 200],
-            ['T05', 4, 'Patio', 'available', 200, 200],
-            ['VIP01', 8, 'VIP Section', 'available', 100, 300],
-            ['VIP02', 10, 'VIP Section', 'available', 200, 300]
+            ['A1', 2, 'indoor', 'available', 100, 100],
+            ['A2', 2, 'indoor', 'available', 100, 200],
+            ['A3', 4, 'indoor', 'available', 100, 300],
+            ['B1', 4, 'indoor', 'available', 200, 100],
+            ['B2', 4, 'indoor', 'available', 200, 200],
+            ['C1', 2, 'outdoor', 'available', 300, 100],
+            ['C2', 4, 'outdoor', 'available', 300, 200]
         ];
         
         const insertQuery = 'INSERT INTO restaurant_tables (table_number, capacity, section, status, coordinates_x, coordinates_y) VALUES ?';
@@ -454,7 +479,7 @@ function insertSampleTables() {
             if (err) {
                 console.error('Error inserting sample tables:', err);
             } else {
-                console.log('✅ Sample tables added');
+                console.log('✅ Sample restaurant tables added');
             }
         });
     });
