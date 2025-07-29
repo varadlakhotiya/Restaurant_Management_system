@@ -20,9 +20,7 @@ const db = mysql.createConnection({
     acquireTimeout: 60000,
     timeout: 60000,
     reconnect: true,
-    ssl : {
-        ca: fs.readFileSync(path.join(__dirname, 'certificates', 'ca.pem'))
-    }
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
 db.connect((err) => {
