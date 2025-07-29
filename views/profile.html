@@ -42,6 +42,7 @@
                     <li data-tab="preferences">Preferences</li>
                     <li data-tab="reservations">My Reservations</li>
                     <li data-tab="orders">Order History</li>
+                    <li data-tab="account-settings">Account Settings</li>
                 </ul>
             </div>
             
@@ -153,6 +154,60 @@
                         <div class="loader">Loading your orders...</div>
                     </div>
                 </div>
+
+                <!-- NEW: Account Settings Tab with Logout -->
+    <div class="profile-tab" id="account-settings">
+        <h3>Account Settings</h3>
+        
+        <div class="account-settings-section">
+            <h4>Security</h4>
+            <div class="form-group">
+                <button type="button" class="profile-action-btn" id="changePasswordBtn">
+                    <i class="fas fa-key"></i> Change Password
+                </button>
+            </div>
+        </div>
+        
+        <div class="account-settings-section">
+            <h4>Notifications</h4>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="emailNotifications" checked>
+                    Email notifications for reservations
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="smsNotifications" checked>
+                    SMS notifications for order updates
+                </label>
+            </div>
+        </div>
+        
+        <div class="account-settings-section">
+            <h4>Account Actions</h4>
+            <div class="form-group">
+                <button type="button" class="profile-action-btn secondary" id="downloadDataBtn">
+                    <i class="fas fa-download"></i> Download My Data
+                </button>
+            </div>
+            <div class="form-group">
+                <button type="button" class="profile-action-btn danger" id="deleteAccountBtn">
+                    <i class="fas fa-trash"></i> Delete Account
+                </button>
+            </div>
+        </div>
+        
+        <!-- Logout Section -->
+        <div class="account-settings-section logout-section">
+            <h4>Session</h4>
+            <p>Ready to leave? You can logout from your account here.</p>
+            <div class="form-group">
+                <button type="button" class="profile-logout-btn" id="profileLogoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout from Account
+                </button>
+            </div>
+        </div>
             </div>
         </div>
     </section>

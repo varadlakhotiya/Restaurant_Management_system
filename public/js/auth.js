@@ -299,14 +299,14 @@ function logout() {
     });
 }
 
-// Update UI for logged in user
+// Update UI for logged in user - MODIFIED to hide logout from main nav
 function updateUIForLoggedInUser(profile) {
-    console.log('Updating UI for logged in user:', profile); // Debug log
+    console.log('Updating UI for logged in user:', profile);
     
     // Get all navigation elements
     const loginLinks = document.querySelectorAll('.login-link, li a[href="/login"]');
     const registerLinks = document.querySelectorAll('.register-link, li a[href="/register"]');
-    const logoutLinks = document.querySelectorAll('.logout-link');
+    const logoutLinks = document.querySelectorAll('.logout-link'); // Keep reference but don't show
     const profileLinks = document.querySelectorAll('.profile-link');
     const adminLinks = document.querySelectorAll('.admin-link');
     const userName = document.getElementById('userName');
@@ -332,14 +332,15 @@ function updateUIForLoggedInUser(profile) {
         }
     });
     
-    // Show logout and profile links
+    // KEEP LOGOUT LINKS HIDDEN IN MAIN NAV - they should only appear in profile
     logoutLinks.forEach(link => {
         const listItem = link.tagName === 'LI' ? link : link.closest('li');
         if (listItem) {
-            listItem.style.display = 'inline-block';
+            listItem.style.display = 'none'; // Changed from 'inline-block' to 'none'
         }
     });
     
+    // Show profile links
     profileLinks.forEach(link => {
         const listItem = link.tagName === 'LI' ? link : link.closest('li');
         if (listItem) {
@@ -360,8 +361,113 @@ function updateUIForLoggedInUser(profile) {
     // Add user role to body for styling
     document.body.setAttribute('data-role', profile.role);
     
-    console.log('UI updated for logged in user'); // Debug log
+    console.log('UI updated for logged in user');
 }
+
+// Enhanced logout function that works from anywhere
+function logout() {
+    // Show loading state - check if we're on profile page or main nav
+    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+    const mainLogoutBtn = document.getElementById('logoutBtn');
+    const activeLogoutBtn = profileLogoutBtn || mainLogoutBtn;
+    
+    if (activeLogoutBtn) {
+        activeLogoutBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Logging out...';
+        activeLogoutBtn.disabled = true;
+    }
+    
+    fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Clear any cached data
+            if (typeof(Storage) !== "undefined") {
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+            
+            // Update UI immediately
+            updateUIForLoggedOutUser();
+            
+            // Show success message
+            if (typeof showNotification === 'function') {
+                showNotification('Logged out successfully!', 'success');
+            }
+            
+            // Redirect to home page after a short delay
+            setTimeout(() => {
+                window.location.href = data.redirectTo || '/';
+            }, 1000);
+        } else {
+            // Update UI and redirect anyway
+            updateUIForLoggedOutUser();
+            window.location.href = '/';
+        }
+    })
+    .catch(error => {
+        console.error('Logout error:', error);
+        // Update UI and redirect anyway
+        updateUIForLoggedOutUser();
+        window.location.href = '/';
+    });
+}
+
+// Enhanced event listener setup
+document.addEventListener('DOMContentLoaded', function() {
+    checkAuthStatus();
+    
+    // Login form submission
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            login();
+        });
+    }
+    
+    // Register form submission
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            register();
+        });
+    }
+    
+    // Main navigation logout button (if it still exists)
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+        });
+    }
+    
+    // Profile page logout button
+    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+    if (profileLogoutBtn) {
+        profileLogoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Show confirmation dialog
+            if (confirm('Are you sure you want to logout?')) {
+                logout();
+            }
+        });
+    }
+    
+    // Password visibility toggle
+    const passwordToggles = document.querySelectorAll('.password-toggle');
+    passwordToggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const passwordField = this.previousElementSibling;
+            togglePasswordVisibility(passwordField);
+        });
+    });
+});
 
 // Update UI for logged out user
 function updateUIForLoggedOutUser() {

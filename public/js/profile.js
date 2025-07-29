@@ -31,10 +31,242 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // NEW: Set up account settings event listeners
+    setupAccountSettingsListeners();
+    
     // Load user reservations and orders
     loadUserReservations();
     loadUserOrders();
 });
+
+// NEW: Setup account settings event listeners
+function setupAccountSettingsListeners() {
+    // Profile logout button
+    const profileLogoutBtn = document.getElementById('profileLogoutBtn');
+    if (profileLogoutBtn) {
+        profileLogoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Show confirmation dialog
+            if (confirm('Are you sure you want to logout from your account?')) {
+                logout(); // This function is defined in auth.js
+            }
+        });
+    }
+    
+    // Change password button
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', function() {
+            // You can implement a modal for password change
+            showChangePasswordModal();
+        });
+    }
+    
+    // Download data button
+    const downloadDataBtn = document.getElementById('downloadDataBtn');
+    if (downloadDataBtn) {
+        downloadDataBtn.addEventListener('click', function() {
+            downloadUserData();
+        });
+    }
+    
+    // Delete account button
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', function() {
+            if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+                if (confirm('This will permanently delete all your data. Click OK to proceed.')) {
+                    deleteUserAccount();
+                }
+            }
+        });
+    }
+    
+    // Notification settings
+    const emailNotifications = document.getElementById('emailNotifications');
+    const smsNotifications = document.getElementById('smsNotifications');
+    
+    if (emailNotifications) {
+        emailNotifications.addEventListener('change', function() {
+            updateNotificationSettings('email', this.checked);
+        });
+    }
+    
+    if (smsNotifications) {
+        smsNotifications.addEventListener('change', function() {
+            updateNotificationSettings('sms', this.checked);
+        });
+    }
+}
+
+// NEW: Show change password modal
+function showChangePasswordModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Change Password</h3>
+                <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password:</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password:</label>
+                        <input type="password" id="newPassword" name="newPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmNewPassword">Confirm New Password:</label>
+                        <input type="password" id="confirmNewPassword" name="confirmNewPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="profile-save-btn">Change Password</button>
+                        <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Handle form submission
+    const form = modal.querySelector('#changePasswordForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+        
+        if (newPassword !== confirmNewPassword) {
+            showNotification('New passwords do not match', 'error');
+            return;
+        }
+        
+        // Send password change request
+        fetch('/api/user/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                currentPassword,
+                newPassword
+            }),
+            credentials: 'include'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Password changed successfully!', 'success');
+                modal.remove();
+            } else {
+                showNotification(data.message || 'Failed to change password', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Password change error:', error);
+            showNotification('An error occurred. Please try again.', 'error');
+        });
+    });
+}
+
+// NEW: Download user data
+function downloadUserData() {
+    fetch('/api/user/download-data', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Failed to download data');
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'my-spice-symphony-data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showNotification('Your data has been downloaded!', 'success');
+    })
+    .catch(error => {
+        console.error('Download error:', error);
+        showNotification('Failed to download data. Please try again.', 'error');
+    });
+}
+
+// NEW: Delete user account
+function deleteUserAccount() {
+    fetch('/api/user/delete-account', {
+        method: 'DELETE',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Account deleted successfully. You will be redirected...', 'success');
+            
+            // Clear local storage and redirect
+            if (typeof(Storage) !== "undefined") {
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+            
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        } else {
+            showNotification(data.message || 'Failed to delete account', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Account deletion error:', error);
+        showNotification('An error occurred. Please try again.', 'error');
+    });
+}
+
+// NEW: Update notification settings
+function updateNotificationSettings(type, enabled) {
+    fetch('/api/user/notification-settings', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            type: type,
+            enabled: enabled
+        }),
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`${type.toUpperCase()} notifications ${enabled ? 'enabled' : 'disabled'}`, 'success');
+        } else {
+            showNotification('Failed to update notification settings', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Notification settings error:', error);
+        showNotification('An error occurred updating settings', 'error');
+    });
+}
+
+// Rest of your existing functions remain the same...
+// (switchTab, loadProfileData, populateProfileForms, updateProfile, etc.)
 
 // Switch tabs in the profile
 function switchTab(tabId) {

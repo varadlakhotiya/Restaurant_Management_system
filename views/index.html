@@ -26,15 +26,14 @@
                     <li><a href="#shop"><i class="fa fa-shopping-cart"></i> Shop</a></li>
                     <li><a href="#testimonials"><i class="fa fa-comments"></i> Testimonials</a></li>
                     <li><a href="#contact-us-section"><i class="fa fa-phone"></i> Contact</a></li>
+
                     <!-- Add after your existing navigation links -->
                     <li class="login-link"><a href="/login"><i class="fa fa-sign-in-alt"></i> Login</a></li>
                     <li class="register-link"><a href="/register"><i class="fa fa-user-plus"></i> Register</a></li>
                     <li class="profile-link" style="display:none;">
                         <a href="/profile"><i class="fa fa-user"></i> My Profile</a>
                     </li>
-                    <li class="logout-link" style="display:none;" id="logoutBtn">
-                        <a href="#"><i class="fa fa-sign-out-alt"></i> Logout</a>
-                    </li>
+                    
 
                     <li class="admin-link" style="display:none;"><a href="/admin"><i class="fa fa-cog"></i> Admin</a></li>
                 </ul>
@@ -563,8 +562,9 @@
     </div>
 
     <!-- Enhanced Shop Order Receipt Modal -->
-<div id="shop-receipt-modal" class="modal" style="display: none;">
-    <div class="modal-content">
+
+    <div id="shop-receipt-modal" class="modal" style="display: none;">
+        <div class="modal-content">
         <div class="modal-header">
             <h3><i class="fas fa-shopping-bag"></i> Shop Order Receipt</h3>
             <span class="close" onclick="document.getElementById('shop-receipt-modal').style.display='none'">&times;</span>
@@ -582,11 +582,11 @@
                 </button>
             </div>
         </div>
+
     </div>
 
-</section>
 
-
+    </section>
 
     <section id="testimonials" class="testimonials-section">
         <div class="container">
@@ -669,11 +669,12 @@
                 <div class="left-grid">
                     <!-- Contact Information -->
                     <div class="contact-info">
-                        <h3>Contact Information</h3>
+                        <h3>Get In Touch</h3>
                         <ul class="contact-us-list">
-                            <li><strong>Address:</strong> Aurangabad, Maharashtra</li>
-                            <li><strong>Phone:</strong> +91-123-456-7890</li>
-                            <li><strong>Email:</strong> <a href="mailto:contact@spicesymphony.com" class="contact-us-email">contact@spicesymphony.com</a></li>
+                            <li data-icon="&#xf3c5;"><strong>Address:</strong> Aurangabad, Maharashtra</li>
+                            <li data-icon="&#xf095;"><strong>Phone:</strong> +91-123-456-7890</li>
+                            <li data-icon="&#xf0e0;"><strong>Email:</strong> <a href="mailto:contact@spicesymphony.com" class="contact-us-email">contact@spicesymphony.com</a></li>
+                            <li data-icon="&#xf017;"><strong>Hours:</strong> Mon-Fri 11AM-10PM, Weekends 10AM-11PM</li>
                         </ul>
                     </div>
                     <!-- Business Hours -->
