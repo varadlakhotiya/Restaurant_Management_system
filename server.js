@@ -9,6 +9,8 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const app = express();
+const fs = require('fs');
+const path = require('path');
 
 // Use environment variables for database configuration
 const db = mysql.createConnection({
@@ -18,7 +20,10 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME,
     acquireTimeout: 60000,
     timeout: 60000,
-    reconnect: true
+    reconnect: true,
+    ssl : {
+        ca: fs.readFileSync(path.join(__dirname, 'certificates', 'ca.pem'))
+    }
 });
 
 db.connect((err) => {
