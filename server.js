@@ -14,13 +14,18 @@ const fs = require('fs');
 // Use environment variables for database configuration
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     acquireTimeout: 60000,
     timeout: 60000,
     reconnect: true,
-    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+    ssl: process.env.DB_SSL === 'true' ? {
+        rejectUnauthorized: false,
+        ca: undefined
+    } : false,
+    charset: 'utf8mb4'
 });
 
 db.connect((err) => {
@@ -28,9 +33,11 @@ db.connect((err) => {
         console.error('❌ Error connecting to MySQL:', err);
         console.error('📍 Database Config Check:');
         console.error('   - DB_HOST:', process.env.DB_HOST ? '✅ Set' : '❌ Missing');
+        console.error('   - DB_PORT:', process.env.DB_PORT ? '✅ Set' : '❌ Missing');
         console.error('   - DB_USER:', process.env.DB_USER ? '✅ Set' : '❌ Missing');
         console.error('   - DB_PASSWORD:', process.env.DB_PASSWORD ? '✅ Set' : '❌ Missing');
         console.error('   - DB_NAME:', process.env.DB_NAME ? '✅ Set' : '❌ Missing');
+        console.error('   - DB_SSL:', process.env.DB_SSL ? '✅ Set' : '❌ Missing');
         
         // Don't exit in production, try to continue
         if (process.env.NODE_ENV !== 'production') {
@@ -38,21 +45,309 @@ db.connect((err) => {
         }
     } else {
         console.log('✅ MySQL connected successfully!');
+        console.log(`📊 Connected to database: ${process.env.DB_NAME} on ${process.env.DB_HOST}:${process.env.DB_PORT}`);
         
-        // Create activity tracking table if it doesn't exist
-        createActivityTrackingTable();
+        // Create database and tables after successful connection
+        initializeDatabase();
     }
 });
 
-// Handle connection errors
-db.on('error', function(err) {
-    console.error('💥 Database error:', err);
-    if(err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.log('🔄 Attempting to reconnect to database...');
-    }
-});
+// Enhanced database initialization
+function initializeDatabase() {
+    // First, create the spice_symphony database if it doesn't exist
+    db.query('CREATE DATABASE IF NOT EXISTS spice_symphony', (err) => {
+        if (err) {
+            console.error('Error creating database:', err);
+        } else {
+            console.log('✅ Database spice_symphony ensured');
+            
+            // Switch to spice_symphony database
+            db.query('USE spice_symphony', (err) => {
+                if (err) {
+                    console.error('Error switching to spice_symphony database:', err);
+                    // Fall back to default database
+                    console.log('📝 Continuing with default database...');
+                    createTables();
+                } else {
+                    console.log('✅ Switched to spice_symphony database');
+                    createTables();
+                }
+            });
+        }
+    });
+}
 
-// Create activity tracking table
+// Function to create all necessary tables
+function createTables() {
+    // Create activity tracking table
+    createActivityTrackingTable();
+    
+    // Create other essential tables
+    createUsersTable();
+    createUserProfilesTable();
+    createUserSessionsTable();
+    createMenuItemsTable();
+    createRestaurantTablesTable();
+    createTableAvailabilityTable();
+    createReservationsTable();
+    createOrdersTable();
+    createTestimonialsTable();
+    createProductsTable();
+}
+
+// Create users table
+function createUsersTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            first_name VARCHAR(100) NOT NULL,
+            last_name VARCHAR(100) NOT NULL,
+            phone VARCHAR(20),
+            role ENUM('customer', 'admin') DEFAULT 'customer',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP NULL
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating users table:', err);
+        } else {
+            console.log('✅ Users table ready');
+        }
+    });
+}
+
+// Create user_profiles table
+function createUserProfilesTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT UNIQUE NOT NULL,
+            address TEXT,
+            city VARCHAR(100),
+            state VARCHAR(100),
+            postal_code VARCHAR(20),
+            preferred_payment_method VARCHAR(50),
+            dietary_preferences TEXT,
+            allergies TEXT,
+            favorite_dishes TEXT,
+            birthday DATE,
+            anniversary DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating user_profiles table:', err);
+        } else {
+            console.log('✅ User profiles table ready');
+        }
+    });
+}
+
+// Create user_sessions table
+function createUserSessionsTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            id VARCHAR(255) PRIMARY KEY,
+            user_id INT NOT NULL,
+            expires TIMESTAMP NOT NULL,
+            data TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating user_sessions table:', err);
+        } else {
+            console.log('✅ User sessions table ready');
+        }
+    });
+}
+
+// Create menu_items table
+function createMenuItemsTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS menu_items (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            price DECIMAL(10, 2) NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            subcategory VARCHAR(100),
+            image VARCHAR(500),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating menu_items table:', err);
+        } else {
+            console.log('✅ Menu items table ready');
+        }
+    });
+}
+
+// Create restaurant_tables table
+function createRestaurantTablesTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS restaurant_tables (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            table_number VARCHAR(20) UNIQUE NOT NULL,
+            capacity INT NOT NULL,
+            section VARCHAR(50) NOT NULL,
+            status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
+            coordinates_x INT DEFAULT 0,
+            coordinates_y INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating restaurant_tables table:', err);
+        } else {
+            console.log('✅ Restaurant tables table ready');
+        }
+    });
+}
+
+// Create table_availability table
+function createTableAvailabilityTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS table_availability (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            table_id INT NOT NULL,
+            date DATE NOT NULL,
+            time_slot TIME NOT NULL,
+            is_available BOOLEAN DEFAULT TRUE,
+            reservation_id INT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_table_datetime (table_id, date, time_slot),
+            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE CASCADE
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating table_availability table:', err);
+        } else {
+            console.log('✅ Table availability table ready');
+        }
+    });
+}
+
+// Create reservations table
+function createReservationsTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS reservations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NULL,
+            table_id INT NULL,
+            date DATE NOT NULL,
+            time TIME NOT NULL,
+            guests INT NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            contact VARCHAR(20) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            seating VARCHAR(50),
+            special_requests TEXT,
+            confirmation_method VARCHAR(20),
+            status ENUM('confirmed', 'cancelled', 'completed') DEFAULT 'confirmed',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating reservations table:', err);
+        } else {
+            console.log('✅ Reservations table ready');
+        }
+    });
+}
+
+// Create orders table
+function createOrdersTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS orders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NULL,
+            name VARCHAR(255) NOT NULL,
+            table_number VARCHAR(50) NOT NULL,
+            special_requests TEXT,
+            items TEXT NOT NULL,
+            total DECIMAL(10, 2) NOT NULL,
+            order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating orders table:', err);
+        } else {
+            console.log('✅ Orders table ready');
+        }
+    });
+}
+
+// Create testimonials table
+function createTestimonialsTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS testimonials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            role VARCHAR(255),
+            rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            review TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating testimonials table:', err);
+        } else {
+            console.log('✅ Testimonials table ready');
+        }
+    });
+}
+
+// Create products table
+function createProductsTable() {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS products (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            price DECIMAL(10, 2) NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            image VARCHAR(500),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    
+    db.query(createTableQuery, (err) => {
+        if (err) {
+            console.error('Error creating products table:', err);
+        } else {
+            console.log('✅ Products table ready');
+        }
+    });
+}
+// Updated Create activity tracking table function
 function createActivityTrackingTable() {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS user_activity_log (
@@ -67,8 +362,7 @@ function createActivityTrackingTable() {
             INDEX idx_user_id (user_id),
             INDEX idx_session_id (session_id),
             INDEX idx_activity_type (activity_type),
-            INDEX idx_created_at (created_at),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            INDEX idx_created_at (created_at)
         )
     `;
     
@@ -76,7 +370,7 @@ function createActivityTrackingTable() {
         if (err) {
             console.error('Error creating activity tracking table:', err);
         } else {
-            console.log('Activity tracking table ready');
+            console.log('✅ Activity tracking table ready');
         }
     });
 }
