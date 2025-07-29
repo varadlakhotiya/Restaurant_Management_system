@@ -15,19 +15,39 @@ const db = mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME,
+    acquireTimeout: 60000,
+    timeout: 60000,
+    reconnect: true
 });
 
-// Connect to the database
 db.connect((err) => {
     if (err) {
-        console.error('Error connecting to MySQL:', err);
-        process.exit(1);
+        console.error('❌ Error connecting to MySQL:', err);
+        console.error('📍 Database Config Check:');
+        console.error('   - DB_HOST:', process.env.DB_HOST ? '✅ Set' : '❌ Missing');
+        console.error('   - DB_USER:', process.env.DB_USER ? '✅ Set' : '❌ Missing');
+        console.error('   - DB_PASSWORD:', process.env.DB_PASSWORD ? '✅ Set' : '❌ Missing');
+        console.error('   - DB_NAME:', process.env.DB_NAME ? '✅ Set' : '❌ Missing');
+        
+        // Don't exit in production, try to continue
+        if (process.env.NODE_ENV !== 'production') {
+            process.exit(1);
+        }
+    } else {
+        console.log('✅ MySQL connected successfully!');
+        
+        // Create activity tracking table if it doesn't exist
+        createActivityTrackingTable();
     }
-    console.log('MySQL connected...');
-    
-    // Create activity tracking table if it doesn't exist
-    createActivityTrackingTable();
+});
+
+// Handle connection errors
+db.on('error', function(err) {
+    console.error('💥 Database error:', err);
+    if(err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('🔄 Attempting to reconnect to database...');
+    }
 });
 
 // Create activity tracking table
