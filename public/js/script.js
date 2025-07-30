@@ -871,6 +871,7 @@ function initializeClearCart() {
 // ENHANCED SHOP FUNCTIONALITY
 // ========================================
 
+// ==== ENHANCED SHOP FUNCTIONALITY - FIXED VERSION ====
 function initializeShopSection() {
     const productGrid = document.querySelector('.product-grid');
     const shopCartItems = document.getElementById('shop-cart-items');
@@ -883,7 +884,6 @@ function initializeShopSection() {
 
     let shopCart = [];
     let products = [];
-    const placeholder = document.createElement('div');
 
     // Hide the shop cart section initially
     if (shopCartSection) {
@@ -895,80 +895,119 @@ function initializeShopSection() {
 
     // Fetch products and display them in the product grid
     function fetchProducts() {
+        console.log('🛒 Fetching products...');
         fetch('/api/products')
             .then(response => response.json())
             .then(data => {
+                console.log('📦 Products received:', data);
                 products = data;
                 displayProducts(data);
-                hideAllProducts();
-                showPlaceholder();
+                
+                // ✅ FIXED: Show all products by default instead of hiding them
+                showAllProducts();
+                
+                // Set "All" filter as active by default
+                setDefaultFilter();
             })
             .catch(error => {
                 console.error('Error fetching products:', error);
                 showNotification('Failed to load products', 'error');
+                showErrorMessage();
             });
+    }
+
+    // ✅ NEW: Show all products by default
+    function showAllProducts() {
+        const allProductItems = document.querySelectorAll('.product-item');
+        allProductItems.forEach(item => {
+            item.style.display = 'block';
+        });
+        console.log('✅ All products are now visible');
+    }
+
+    // ✅ FIXED: Set default filter to "All" and make it active
+    function setDefaultFilter() {
+        const allFilter = document.querySelector('#shop .filters .filter-link[data-category="all"]');
+        if (allFilter) {
+            allFilter.classList.add('active');
+            console.log('✅ Set "All" filter as active');
+        }
     }
 
     // Display products in the grid
     function displayProducts(products) {
-        if (!productGrid) return;
+        if (!productGrid) {
+            console.error('❌ Product grid not found');
+            return;
+        }
+        
         productGrid.innerHTML = ''; // Clear existing content
+        
+        if (products.length === 0) {
+            productGrid.innerHTML = '<div class="no-products">No products available at the moment.</div>';
+            return;
+        }
+        
         products.forEach(product => {
             const productItem = document.createElement('div');
             productItem.className = `product-item ${product.category.toLowerCase()}`;
-            productItem.style.display = 'none';
+            // ✅ FIXED: Don't hide products by default
+            productItem.style.display = 'block';
+            
             productItem.innerHTML = `
-                <img src="${product.image_url}" alt="${product.name}" class="product-image">
+                <img src="${product.image_url || 'images/placeholder.jpg'}" alt="${product.name}" class="product-image" onerror="this.src='images/placeholder.jpg'">
                 <h3>${product.name}</h3>
                 <p class="product-description">${product.description}</p>
                 <p class="product-price">₹${product.price.toFixed(2)}</p>
                 <div class="product-rating">${'★'.repeat(Math.floor(product.rating))}${'☆'.repeat(5 - Math.floor(product.rating))} (${product.review_count} reviews)</div>
                 <div class="product-badge">${product.badge}</div>
-                <div class="stock-availability">${product.stock_availability}</div>
-                <button class="add-to-shop-cart" data-id="${product.id}">Add to Cart</button>
-                <button class="quick-view" data-id="${product.id}">Quick View</button>
-                <button class="add-to-wishlist" data-id="${product.id}">Save for Later</button>
+                <div class="stock-availability ${product.stock_availability === 'In Stock' ? 'in-stock' : 'limited-stock'}">${product.stock_availability}</div>
+                <div class="product-actions">
+                    <button class="add-to-shop-cart" data-id="${product.id}">Add to Cart</button>
+                    <button class="quick-view" data-id="${product.id}">Quick View</button>
+                    <button class="add-to-wishlist" data-id="${product.id}">♡ Save</button>
+                </div>
             `;
             productGrid.appendChild(productItem);
         });
+        
+        console.log(`✅ Displayed ${products.length} products`);
         addShopEventListeners();
     }
 
-    // Hide all products initially
-    function hideAllProducts() {
-        const allProductItems = document.querySelectorAll('.product-item');
-        allProductItems.forEach(item => {
-            item.style.display = 'none';
-        });
-    }
-
-    // Show placeholder message
-    function showPlaceholder() {
-        placeholder.className = 'placeholder';
-        placeholder.innerHTML = '<p>Please select a category to view products.</p>';
+    // ✅ NEW: Show error message when products fail to load
+    function showErrorMessage() {
         if (productGrid) {
-            productGrid.appendChild(placeholder);
-        }
-    }
-
-    // Hide placeholder
-    function hidePlaceholder() {
-        if (placeholder.parentNode) {
-            placeholder.parentNode.removeChild(placeholder);
+            productGrid.innerHTML = `
+                <div class="products-error">
+                    <h3>Unable to load products</h3>
+                    <p>Please try refreshing the page or contact support if the problem persists.</p>
+                    <button onclick="location.reload()">Refresh Page</button>
+                </div>
+            `;
         }
     }
 
     // Show products by selected category
     function showProductsByCategory(category) {
+        console.log('🏷️ Filtering by category:', category);
         const allProductItems = document.querySelectorAll('.product-item');
+        let visibleCount = 0;
+        
         allProductItems.forEach(item => {
-            if (item.classList.contains(category)) {
+            if (category === 'all' || item.classList.contains(category)) {
                 item.style.display = 'block';
+                visibleCount++;
             } else {
                 item.style.display = 'none';
             }
         });
-        hidePlaceholder();
+        
+        console.log(`✅ Showing ${visibleCount} products for category: ${category}`);
+        
+        if (visibleCount === 0 && category !== 'all') {
+            showNotification(`No products found in ${category} category`, 'info');
+        }
     }
 
     // Add event listeners for shop product buttons
@@ -990,8 +1029,8 @@ function initializeShopSection() {
     // Handle adding product to shop cart
     function addToShopCart(event) {
         event.preventDefault();
-        const productId = event.target.getAttribute('data-id');
-        const product = products.find(p => p.id == productId);
+        const productId = parseInt(event.target.getAttribute('data-id'));
+        const product = products.find(p => p.id === productId);
         
         if (product) {
             // Check if product already in cart
@@ -1010,11 +1049,13 @@ function initializeShopSection() {
             const originalText = button.textContent;
             button.textContent = 'Added!';
             button.style.backgroundColor = '#4caf50';
+            button.disabled = true;
             
             setTimeout(() => {
                 button.textContent = originalText;
                 button.style.backgroundColor = '';
-            }, 1000);
+                button.disabled = false;
+            }, 1500);
             
             // Show the cart section when an item is added
             if (shopCartSection) {
@@ -1022,39 +1063,59 @@ function initializeShopSection() {
             }
             
             showNotification(`Added ${product.name} to shop cart!`, 'success');
-            console.log('Added to shop cart:', product.name);
+            console.log('✅ Added to shop cart:', product.name);
         }
     }
 
     // Quick view product details
     function quickView(event) {
         event.preventDefault();
-        const productId = event.target.getAttribute('data-id');
-        const product = products.find(p => p.id == productId);
+        const productId = parseInt(event.target.getAttribute('data-id'));
+        const product = products.find(p => p.id === productId);
         if (product) {
-            alert(`Quick View: ${product.name}\n${product.description}\nPrice: ₹${product.price.toFixed(2)}\nRating: ${product.rating}/5 (${product.review_count} reviews)`);
+            // Create a better modal instead of alert
+            const modal = document.createElement('div');
+            modal.className = 'quick-view-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close" onclick="this.closest('.quick-view-modal').remove()">&times;</span>
+                    <div class="product-quick-view">
+                        <img src="${product.image_url || 'images/placeholder.jpg'}" alt="${product.name}">
+                        <div class="product-details">
+                            <h3>${product.name}</h3>
+                            <p class="price">₹${product.price.toFixed(2)}</p>
+                            <p class="description">${product.description}</p>
+                            <div class="rating">${'★'.repeat(Math.floor(product.rating))}${'☆'.repeat(5 - Math.floor(product.rating))} (${product.review_count} reviews)</div>
+                            <div class="badge">${product.badge}</div>
+                            <div class="stock">${product.stock_availability}</div>
+                            <button class="add-to-cart-modal" onclick="document.querySelector('[data-id=\\"${product.id}\\"]').click(); this.closest('.quick-view-modal').remove();">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
     }
 
     // Add product to wishlist
     function addToWishlist(event) {
         event.preventDefault();
-        const productId = event.target.getAttribute('data-id');
-        const product = products.find(p => p.id == productId);
+        const productId = parseInt(event.target.getAttribute('data-id'));
+        const product = products.find(p => p.id === productId);
         if (product) {
             // Visual feedback
             const button = event.target;
             const originalText = button.textContent;
-            button.textContent = 'Saved!';
-            button.style.backgroundColor = '#ff9800';
+            button.textContent = '❤️ Saved!';
+            button.style.color = '#e74c3c';
             
             setTimeout(() => {
                 button.textContent = originalText;
-                button.style.backgroundColor = '';
-            }, 1000);
+                button.style.color = '';
+            }, 2000);
             
             showNotification(`Added ${product.name} to wishlist!`, 'success');
-            console.log('Added to wishlist:', product.name);
+            console.log('✅ Added to wishlist:', product.name);
         }
     }
 
@@ -1069,6 +1130,11 @@ function initializeShopSection() {
             shopCartItems.innerHTML = '<div class="empty-cart-message">Your shopping cart is empty.</div>';
             if (shopSubtotalElement) shopSubtotalElement.textContent = '0.00';
             if (shopTotalElement) shopTotalElement.textContent = '0.00';
+            
+            // Hide cart section if empty
+            if (shopCartSection) {
+                shopCartSection.style.display = 'none';
+            }
             return;
         }
         
@@ -1079,6 +1145,9 @@ function initializeShopSection() {
             const cartItem = document.createElement('div');
             cartItem.className = 'shop-cart-item';
             cartItem.innerHTML = `
+                <div class="item-image">
+                    <img src="${item.image_url || 'images/placeholder.jpg'}" alt="${item.name}" width="50">
+                </div>
                 <div class="item-details">
                     <h4>${item.name}</h4>
                     <p>₹${item.price.toFixed(2)} each</p>
@@ -1097,7 +1166,7 @@ function initializeShopSection() {
         if (shopSubtotalElement) shopSubtotalElement.textContent = subtotal.toFixed(2);
         if (shopTotalElement) shopTotalElement.textContent = subtotal.toFixed(2);
         
-        console.log('Shop cart updated. Items:', shopCart.length, 'Total:', subtotal);
+        console.log('🛒 Shop cart updated. Items:', shopCart.length, 'Total:', subtotal);
     }
 
     // Make functions globally available for onclick handlers
@@ -1121,123 +1190,107 @@ function initializeShopSection() {
             const removedItem = shopCart.splice(index, 1)[0];
             updateShopCart();
             showNotification(`Removed ${removedItem.name} from shop cart`, 'info');
-            console.log('Removed from shop cart:', removedItem.name);
+            console.log('✅ Removed from shop cart:', removedItem.name);
         }
     };
 
-    // ========================================
-// ENHANCED SHOP FUNCTIONALITY
-// ========================================
-
-function enhancedShopCheckout() {
-    const shopCheckoutBtn = document.getElementById('shop-checkout-btn');
-    
-    if (!shopCheckoutBtn) {
-        console.error('Shop checkout button not found');
-        return;
-    }
-    
-    shopCheckoutBtn.addEventListener('click', function() {
-        console.log('Shop checkout clicked, cart:', shopCart);
-        
-        if (!shopCart || shopCart.length === 0) {
-            showNotification('Your shopping cart is empty!', 'warning');
+    // Enhanced checkout functionality
+    function enhancedShopCheckout() {
+        if (!shopCheckoutBtn) {
+            console.error('❌ Shop checkout button not found');
             return;
         }
         
-        const total = shopCart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-        const itemsList = shopCart.map(item => `${item.name} (x${item.quantity || 1}) - ₹${(item.price * (item.quantity || 1)).toFixed(2)}`);
-        
-        // Show confirmation dialog
-        const confirmationMessage = `🛒 Checkout Summary:\n\n${itemsList.join('\n')}\n\n💰 Total: ₹${total.toFixed(2)}\n\nProceed with checkout?`;
-        
-        if (confirm(confirmationMessage)) {
-            processShopOrder(total, itemsList);
-        }
-    });
-}
-
-function processShopOrder(total, itemsList) {
-    // Simulate processing delay
-    showNotification('Processing your order...', 'info');
-    
-    // Prepare shop order data
-    const shopOrderData = {
-        type: 'shop',
-        items: itemsList.join(', '),
-        total: total.toFixed(2),
-        orderTime: new Date().toISOString(),
-        orderId: 'SHOP-' + Date.now()
-    };
-    
-    // Simulate successful order
-    setTimeout(() => {
-        showShopReceipt(shopOrderData);
-        
-        // Clear shop cart
-        shopCart = [];
-        updateShopCart();
-        
-        // Hide cart section
-        const shopCartSection = document.getElementById('shop-cart');
-        if (shopCartSection) {
-            shopCartSection.style.display = 'none';
-        }
-        
-        showNotification('Shop order placed successfully!', 'success');
-    }, 2000);
-}
-
-function showShopReceipt(orderData) {
-    const shopReceiptModal = document.getElementById('shop-receipt-modal');
-    const shopReceiptContent = document.getElementById('shop-receipt-content');
-    
-    console.log('Attempting to show shop receipt:', orderData);
-    
-    if (!shopReceiptModal || !shopReceiptContent) {
-        console.error('Shop receipt modal not found');
-        showNotification('Order placed successfully! Receipt unavailable - check browser console.', 'success');
-        // Ensure scrolling is restored even if modal fails
-        document.body.style.overflow = 'auto';
-        return;
+        shopCheckoutBtn.addEventListener('click', function() {
+            console.log('🛒 Shop checkout clicked, cart:', shopCart);
+            
+            if (!shopCart || shopCart.length === 0) {
+                showNotification('Your shopping cart is empty!', 'warning');
+                return;
+            }
+            
+            const total = shopCart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+            const itemsList = shopCart.map(item => `${item.name} (x${item.quantity || 1}) - ₹${(item.price * (item.quantity || 1)).toFixed(2)}`);
+            
+            // Show confirmation dialog
+            const confirmationMessage = `🛒 Checkout Summary:\n\n${itemsList.join('\n')}\n\n💰 Total: ₹${total.toFixed(2)}\n\nProceed with checkout?`;
+            
+            if (confirm(confirmationMessage)) {
+                processShopOrder(total, itemsList);
+            }
+        });
     }
-    
-    shopReceiptContent.innerHTML = `
-        <div class="receipt-header">
-            <h2>🛍️ Shop Order Confirmation</h2>
-            <p>Thank you for your purchase!</p>
-        </div>
-        <div class="receipt-details">
-            <div class="receipt-row">
-                <strong>Order ID:</strong> <span>#${orderData.orderId}</span>
+
+    function processShopOrder(total, itemsList) {
+        // Show processing message
+        showNotification('Processing your order...', 'info');
+        
+        // Prepare shop order data
+        const shopOrderData = {
+            type: 'shop',
+            items: itemsList.join(', '),
+            total: total.toFixed(2),
+            orderTime: new Date().toISOString(),
+            orderId: 'SHOP-' + Date.now()
+        };
+        
+        // Simulate successful order
+        setTimeout(() => {
+            showShopReceipt(shopOrderData);
+            
+            // Clear shop cart
+            shopCart = [];
+            updateShopCart();
+            
+            showNotification('Shop order placed successfully!', 'success');
+        }, 2000);
+    }
+
+    function showShopReceipt(orderData) {
+        const shopReceiptModal = document.getElementById('shop-receipt-modal');
+        const shopReceiptContent = document.getElementById('shop-receipt-content');
+        
+        if (!shopReceiptModal || !shopReceiptContent) {
+            console.error('❌ Shop receipt modal not found');
+            showNotification('Order placed successfully! Receipt unavailable.', 'success');
+            return;
+        }
+        
+        shopReceiptContent.innerHTML = `
+            <div class="receipt-header">
+                <h2>🛍️ Shop Order Confirmation</h2>
+                <p>Thank you for your purchase!</p>
             </div>
-            <div class="receipt-row">
-                <strong>Order Type:</strong> <span>Shop Purchase</span>
-            </div>
-            <div class="receipt-row">
-                <strong>Items:</strong>
-                <div class="receipt-items">
-                    ${orderData.items.split(', ').map(item => `<div class="item-line">${item}</div>`).join('')}
+            <div class="receipt-details">
+                <div class="receipt-row">
+                    <strong>Order ID:</strong> <span>#${orderData.orderId}</span>
+                </div>
+                <div class="receipt-row">
+                    <strong>Order Type:</strong> <span>Shop Purchase</span>
+                </div>
+                <div class="receipt-row">
+                    <strong>Items:</strong>
+                    <div class="receipt-items">
+                        ${orderData.items.split(', ').map(item => `<div class="item-line">${item}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="receipt-row total-row">
+                    <strong>Total Amount:</strong> <span class="total-amount">₹${orderData.total}</span>
+                </div>
+                <div class="receipt-row">
+                    <strong>Order Time:</strong> <span>${new Date(orderData.orderTime).toLocaleString()}</span>
                 </div>
             </div>
-            <div class="receipt-row total-row">
-                <strong>Total Amount:</strong> <span class="total-amount">₹${orderData.total}</span>
+            <div class="receipt-footer">
+                <p>📦 Your items will be prepared for pickup/delivery.</p>
+                <p>📞 Contact us for any questions about your order.</p>
             </div>
-            <div class="receipt-row">
-                <strong>Order Time:</strong> <span>${new Date(orderData.orderTime).toLocaleString()}</span>
-            </div>
-        </div>
-        <div class="receipt-footer">
-            <p>📦 Your items will be prepared for pickup/delivery.</p>
-            <p>📞 Contact us for any questions about your order.</p>
-        </div>
-    `;
-    
-    // Show shop receipt modal using the enhanced function
-    showModal(shopReceiptModal);
-    
-    console.log('Shop receipt displayed successfully');
-}
+        `;
+        
+        // Show shop receipt modal
+        showModal(shopReceiptModal);
+        console.log('✅ Shop receipt displayed successfully');
+    }
 
     // Promo code functionality
     function applyPromoCode() {
@@ -1247,11 +1300,12 @@ function showShopReceipt(orderData) {
             return;
         }
         
-        // Simple promo code logic (you can expand this)
+        // Simple promo code logic
         const promoCodes = {
             'SAVE10': 0.10,
             'WELCOME': 0.15,
-            'FIRST20': 0.20
+            'FIRST20': 0.20,
+            'SPICE10': 0.10
         };
         
         if (promoCodes[promoCode.toUpperCase()]) {
@@ -1261,8 +1315,7 @@ function showShopReceipt(orderData) {
             const newTotal = subtotal - discountAmount;
             
             if (shopTotalElement) {
-                shopTotalElement.textContent = newTotal.toFixed(2);
-                shopTotalElement.innerHTML += ` <small>(${(discount * 100)}% off applied)</small>`;
+                shopTotalElement.innerHTML = `${newTotal.toFixed(2)} <small style="color: #e74c3c;">(${(discount * 100)}% off applied)</small>`;
             }
             
             showNotification(`Promo code applied! You saved ₹${discountAmount.toFixed(2)}`, 'success');
@@ -1271,7 +1324,7 @@ function showShopReceipt(orderData) {
         }
     }
 
-    // Filter links in shop section (using shop-specific filters)
+    // ✅ FIXED: Filter links in shop section
     const shopFilterLinks = document.querySelectorAll('#shop .filters .filter-link');
     shopFilterLinks.forEach(link => {
         link.addEventListener('click', function (e) {
@@ -1291,11 +1344,13 @@ function showShopReceipt(orderData) {
         shopApplyPromoBtn.addEventListener('click', applyPromoCode);
     }
 
-    // Initialize enhanced checkout
+    // Initialize checkout functionality
     enhancedShopCheckout();
 
-    // Fetch products on load
+    // ✅ FIXED: Fetch products on load (this will now show all products by default)
     fetchProducts();
+    
+    console.log('✅ Shop section initialized successfully');
 }
 
 // ========================================

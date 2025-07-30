@@ -502,91 +502,75 @@
 
     </section>
 
-    <!-- Shop Section -->
-    <section id="shop">   
-        <div class="container">
-          <h1>Our Premium Vegetarian Products</h1>
-          <p>Welcome to our store, where we offer a curated selection of authentic, high-quality vegetarian ingredients and beverages. Each product is carefully crafted to bring the rich flavors of India to your home. Explore our range of spices, beverages, marinades, and more! Please select a category to explore products.</p>
-
-          <!-- Categories Filter -->
-          <div class="filters">
-            <h3>Shop by Category</h3>
-            <ul>
-              <li><a href="#" class="filter-link" data-category="spices">Spices</a></li>
-              <li><a href="#" class="filter-link" data-category="beverages">Beverages</a></li>
-              <li><a href="#" class="filter-link" data-category="marinades">Marinades</a></li>
-              <li><a href="#" class="filter-link" data-category="snacks">Snacks</a></li>
-              <li><a href="#" class="filter-link" data-category="desserts">Desserts</a></li>
-              <li><a href="#" class="filter-link" data-category="herbs">Herbs & Seasonings</a></li>
+    <!-- Enhanced Shop Section HTML - Add this to your index.html -->
+<section id="shop" class="shop-section">
+    <div class="container">
+        <h2>Shop Our Products</h2>
+        <p class="section-description">Take home the authentic flavors with our curated selection of traditional Indian products.</p>
+        
+        <!-- Shop Filters -->
+        <div class="filters">
+            <ul class="filter-list">
+                <li><a href="#" class="filter-link active" data-category="all">All Products</a></li>
+                <li><a href="#" class="filter-link" data-category="sweets">Sweets & Mithai</a></li>
+                <li><a href="#" class="filter-link" data-category="pickles">Pickles & Chutneys</a></li>
+                <li><a href="#" class="filter-link" data-category="spices">Spices & Masalas</a></li>
+                <li><a href="#" class="filter-link" data-category="ready-to-eat">Ready-to-Eat</a></li>
+                <li><a href="#" class="filter-link" data-category="snacks">Traditional Snacks</a></li>
+                <li><a href="#" class="filter-link" data-category="gifts">Gift Hampers</a></li>
             </ul>
-          </div>
-
-          <!-- Product Grid -->
-          <div class="product-grid"></div>
-        </div>
-    </section>
-    <!-- Cart Section in the second section -->
-    <!-- Enhanced Shop Cart Section (replace existing shop cart) -->
-
-    <section id="shop-cart">
-    <div class="shop-cart-header">
-        <h2><i class="fas fa-shopping-bag"></i> Your Shopping Cart</h2>
-    </div>
-    
-    <div id="shop-cart-items" class="shop-cart-items">
-        <!-- Cart items will appear here -->
-    </div>
-    
-    <div id="shop-cart-summary" class="shop-cart-summary">
-        <div class="summary-row">
-            <span>Subtotal:</span>
-            <span>₹<span id="shop-subtotal">0.00</span></span>
-        </div>
-        <div class="summary-row total-row">
-            <span><strong>Total:</strong></span>
-            <span><strong>₹<span id="shop-total">0.00</span></strong></span>
-        </div>
-    </div>
-    
-    <div class="shop-cart-actions">
-        <div class="promo-section">
-            <input type="text" id="shop-promo-code" placeholder="Enter promo code" class="promo-input">
-            <button id="shop-apply-promo-btn" class="btn-secondary">
-                <i class="fas fa-tag"></i> Apply
-            </button>
         </div>
         
-        <button id="shop-checkout-btn" class="btn-primary checkout-btn">
-            <i class="fas fa-credit-card"></i> Proceed to Checkout
-        </button>
+        <!-- Products Grid -->
+        <div class="product-grid">
+            <!-- Products will be loaded here dynamically -->
+            <div class="loading-products">
+                <p>Loading products...</p>
+            </div>
+        </div>
+        
+        <!-- Shopping Cart Section -->
+        <div id="shop-cart" class="shop-cart" style="display: none;">
+            <div class="cart-header">
+                <h3>🛒 Shopping Cart</h3>
+            </div>
+            <div id="shop-cart-items" class="cart-items">
+                <!-- Cart items will be populated here -->
+            </div>
+            <div class="cart-summary">
+                <div class="promo-section">
+                    <input type="text" id="shop-promo-code" placeholder="Enter promo code" />
+                    <button id="shop-apply-promo-btn">Apply</button>
+                </div>
+                <div class="cart-totals">
+                    <div class="subtotal">Subtotal: ₹<span id="shop-subtotal">0.00</span></div>
+                    <div class="total">Total: ₹<span id="shop-total">0.00</span></div>
+                </div>
+                <div class="cart-actions">
+                    <button id="shop-checkout-btn" class="checkout-btn">Proceed to Checkout</button>
+                </div>
+            </div>
+        </div>
     </div>
+</section>
 
-    <!-- Enhanced Shop Order Receipt Modal -->
-
-    <div id="shop-receipt-modal" class="modal" style="display: none;">
-        <div class="modal-content">
+<!-- Shop Receipt Modal -->
+<div id="shop-receipt-modal" class="modal" style="display: none;">
+    <div class="modal-content">
         <div class="modal-header">
-            <h3><i class="fas fa-shopping-bag"></i> Shop Order Receipt</h3>
-            <span class="close" onclick="document.getElementById('shop-receipt-modal').style.display='none'">&times;</span>
+            <h3>Order Receipt</h3>
+            <span class="close">&times;</span>
         </div>
         <div class="modal-body">
-            <div id="shop-receipt-content" class="receipt-content">
-                <!-- Shop receipt content will be populated by JavaScript -->
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn-primary" onclick="window.print()">
-                    <i class="fas fa-print"></i> Print Receipt
-                </button>
-                <button type="button" class="btn-secondary" onclick="document.getElementById('shop-receipt-modal').style.display='none'">
-                    <i class="fas fa-times"></i> Close
-                </button>
+            <div id="shop-receipt-content">
+                <!-- Receipt content will be populated here -->
             </div>
         </div>
-
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="hideModal(document.getElementById('shop-receipt-modal'))">Close</button>
+        </div>
     </div>
-
-
-    </section>
+</div>
 
     <section id="testimonials" class="testimonials-section">
         <div class="container">
