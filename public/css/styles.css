@@ -4377,6 +4377,271 @@ form button:hover {
   display: block;
 }
 
+
+/* Add these styles to your existing styles.css */
+
+/* Password input container */
+.password-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-container input {
+    padding-right: 45px; /* Make room for the toggle button */
+    width: 100%;
+}
+
+/* Password toggle button */
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    padding: 5px;
+    color: #666;
+    transition: color 0.2s ease;
+    z-index: 2;
+}
+
+.password-toggle:hover {
+    color: #333;
+}
+
+.password-toggle i {
+    font-size: 16px;
+}
+
+/* Auth form improvements */
+.auth-form {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.auth-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+/* Form row for side-by-side inputs */
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-group.half {
+    flex: 1;
+}
+
+/* Auth button */
+.auth-button {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.auth-button:hover {
+    background: linear-gradient(135deg, #e55a2e, #e0841a);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+}
+
+.auth-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Error and success messages */
+.auth-error {
+    background: #fee;
+    border: 1px solid #fcc;
+    color: #c33;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.auth-success {
+    background: #efe;
+    border: 1px solid #cfc;
+    color: #3c3;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+/* Checkbox group */
+.checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Auth alternative */
+.auth-alternative {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.auth-alternative p {
+    color: #666;
+    margin: 0;
+}
+
+.auth-alternative a {
+    color: #ff6b35;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-alternative a:hover {
+    text-decoration: underline;
+}
+
+/* Forgot password link */
+.forgot-password {
+    text-align: right;
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
+
+.forgot-password a {
+    color: #ff6b35;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* Password hint */
+.password-hint {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Demo credentials box */
+.demo-credentials {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.demo-credentials h4 {
+    margin: 0 0 10px 0;
+    color: #495057;
+    font-size: 16px;
+}
+
+.demo-credentials p {
+    margin: 5px 0;
+    color: #6c757d;
+}
+
+.demo-credentials strong {
+    color: #495057;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .auth-form {
+        margin: 20px;
+        padding: 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .form-group.half {
+        margin-bottom: 20px;
+    }
+}
+
+/* Loading states */
+.auth-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Focus states for accessibility */
+.auth-button:focus,
+.password-toggle:focus {
+    outline: 2px solid #ff6b35;
+    outline-offset: 2px;
+}
+
+
 /* ========================================
    PROFILE SECTION
    ======================================== */
