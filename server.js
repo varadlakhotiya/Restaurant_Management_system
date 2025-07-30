@@ -59,6 +59,46 @@ db.on('error', function(err) {
     }
 });
 
+// ==== MIDDLEWARE SETUP (MOVED TO TOP) ====
+// Middleware to serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Body parser middleware - MUST come before route definitions
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// Use cookie parser middleware
+app.use(cookieParser());
+
+// Set up session
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'spice_symphony_secret_key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+}));
+
+// Middleware to capture IP address properly
+app.use((req, res, next) => {
+    req.ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || 
+             (req.connection.socket ? req.connection.socket.remoteAddress : null);
+    next();
+});
+
+// Debug middleware to log request body
+app.use('/api/auth/login', (req, res, next) => {
+    console.log('🔍 Login request received:', {
+        method: req.method,
+        contentType: req.get('Content-Type'),
+        bodyPresent: !!req.body,
+        bodyKeys: req.body ? Object.keys(req.body) : 'none',
+        body: req.body
+    });
+    next();
+});
+
 // Enhanced database initialization
 function initializeDatabase() {
     console.log('🔧 Initializing database...');
@@ -86,12 +126,9 @@ function initializeDatabase() {
     });
 }
 
-// Add this section to your server.js - put it right after the database initialization
-
 // Force password reset for all users on startup
 function forcePasswordReset() {
     console.log('🔧 FORCING PASSWORD RESET FOR ALL USERS...');
-    
     resetAllUserPasswords();
 }
 
@@ -173,165 +210,6 @@ function listAllUserCredentials() {
         console.log('');
     });
 }
-
-// Enhanced login endpoint with detailed debugging
-app.post('/api/auth/login', (req, res) => {
-    try {
-        const { email, password } = req.body;
-        
-        console.log(`🔐 Login attempt for: ${email}`);
-        
-        if (!email || !password) {
-            console.log(`❌ Missing credentials for ${email}`);
-            return res.status(400).json({ success: false, message: 'Email and password are required' });
-        }
-        
-        // Find user by email
-        const findUserQuery = 'SELECT * FROM users WHERE email = ?';
-        db.query(findUserQuery, [email], async (err, results) => {
-            if (err) {
-                console.error('❌ Database error during login:', err);
-                return res.status(500).json({ success: false, message: 'Login failed' });
-            }
-            
-            if (results.length === 0) {
-                console.log(`❌ User not found: ${email}`);
-                return res.status(401).json({ success: false, message: 'Invalid email or password' });
-            }
-            
-            const user = results[0];
-            console.log(`✅ User found: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
-            
-            try {
-                // Compare password
-                const passwordMatch = await bcrypt.compare(password, user.password);
-                console.log(`🔑 Password comparison result: ${passwordMatch}`);
-                console.log(`🔑 Provided password: "${password}"`);
-                console.log(`🔑 Expected password: "${user.role === 'admin' ? 'admin123' : 'user123'}"`);
-                
-                if (!passwordMatch) {
-                    console.log(`❌ Password mismatch for ${email}`);
-                    return res.status(401).json({ success: false, message: 'Invalid email or password' });
-                }
-                
-                console.log(`✅ Login successful for ${email}`);
-                
-                // Update last login time
-                db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
-                
-                // Generate JWT token
-                const token = jwt.sign(
-                    { userId: user.id, email: user.email, role: user.role },
-                    process.env.JWT_SECRET || 'spice_symphony_jwt_secret',
-                    { expiresIn: '24h' }
-                );
-                
-                // Set cookie
-                res.cookie('token', token, {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-                });
-                
-                // Create session
-                const sessionId = require('crypto').randomBytes(16).toString('hex');
-                const sessionExpiry = new Date(new Date().getTime() + 24 * 60 * 60 * 1000); // 24 hours
-                
-                db.query(
-                    'INSERT INTO user_sessions (id, user_id, expires, data) VALUES (?, ?, ?, ?)',
-                    [sessionId, user.id, sessionExpiry, JSON.stringify({ lastActive: new Date() })],
-                    (err) => {
-                        if (err) {
-                            console.error('Error creating session:', err);
-                        }
-                    }
-                );
-                
-                // Determine redirect URL based on role
-                const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
-                
-                console.log(`✅ Login completed for ${user.email}, redirecting to ${redirectTo}`);
-                res.json({
-                    success: true,
-                    message: 'Login successful',
-                    redirectTo: redirectTo,
-                    user: {
-                        id: user.id,
-                        email: user.email,
-                        firstName: user.first_name,
-                        lastName: user.last_name,
-                        role: user.role
-                    }
-                });
-            } catch (passwordError) {
-                console.error('❌ Password comparison error:', passwordError);
-                return res.status(500).json({ success: false, message: 'Login failed' });
-            }
-        });
-    } catch (error) {
-        console.error('❌ Login error:', error);
-        res.status(500).json({ success: false, message: 'Login failed' });
-    }
-});
-
-// Manual password reset endpoint for immediate fix
-app.post('/api/debug/force-reset-all-passwords', async (req, res) => {
-    try {
-        console.log('🔧 Manual password reset triggered');
-        
-        // Admin password
-        const adminPassword = 'admin123';
-        const adminHashedPassword = await bcrypt.hash(adminPassword, 10);
-        
-        // User password  
-        const userPassword = 'user123';
-        const userHashedPassword = await bcrypt.hash(userPassword, 10);
-        
-        // Update admin
-        await new Promise((resolve, reject) => {
-            db.query(
-                'UPDATE users SET password = ? WHERE role = "admin" OR email = "admin@spicesymphony.com"',
-                [adminHashedPassword],
-                (err, result) => {
-                    if (err) reject(err);
-                    else resolve(result);
-                }
-            );
-        });
-        
-        // Update customers
-        await new Promise((resolve, reject) => {
-            db.query(
-                'UPDATE users SET password = ? WHERE role = "customer"',
-                [userHashedPassword],
-                (err, result) => {
-                    if (err) reject(err);
-                    else resolve(result);
-                }
-            );
-        });
-        
-        res.json({
-            success: true,
-            message: 'All passwords reset successfully',
-            credentials: {
-                admin: { email: 'admin@spicesymphony.com', password: 'admin123' },
-                customers: { password: 'user123' }
-            }
-        });
-        
-    } catch (error) {
-        console.error('Error in manual password reset:', error);
-        res.status(500).json({ success: false, message: 'Password reset failed' });
-    }
-});
-
-// Call the force password reset after database initialization
-// Add this line after your database initialization is complete
-setTimeout(() => {
-    forcePasswordReset();
-}, 3000); // Wait 3 seconds after database initialization
-
 
 // Function to ensure all tables exist
 function ensureTablesExist() {
@@ -780,32 +658,6 @@ async function setDefaultPasswordsForExistingUsers() {
     }
 }
 
-// List all user credentials
-function listAllUserCredentials() {
-    const getUsersQuery = 'SELECT email, first_name, last_name, role FROM users ORDER BY role DESC, id';
-    
-    db.query(getUsersQuery, (err, users) => {
-        if (err) {
-            console.error('Error fetching users for credentials list:', err);
-            return;
-        }
-        
-        console.log('🎯 ALL USER LOGIN CREDENTIALS:');
-        console.log('=====================================');
-        
-        users.forEach(user => {
-            const password = user.role === 'admin' ? 'admin123' : 'user123';
-            console.log(`👤 ${user.first_name} ${user.last_name} (${user.role})`);
-            console.log(`   📧 Email: ${user.email}`);
-            console.log(`   🔑 Password: ${password}`);
-            console.log('   ---');
-        });
-        
-        console.log('=====================================');
-        console.log('🌐 Login URL: https://restaurant-management-system-z09l.onrender.com/login');
-    });
-}
-
 // Ensure user profile exists for an email
 function ensureUserProfile(email) {
     const getUserIdQuery = 'SELECT id FROM users WHERE email = ?';
@@ -824,430 +676,10 @@ function ensureUserProfile(email) {
     });
 }
 
-// Function to ensure all tables exist (matching your existing schema)
-function ensureTablesExist() {
-    console.log('🔧 Ensuring database tables exist...');
-    
-    // Check if users table exists and has correct structure
-    checkAndCreateUsersTable();
-}
-
-// Check and create users table with correct schema
-function checkAndCreateUsersTable() {
-    const createUsersTableQuery = `
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(100) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            first_name VARCHAR(50) NOT NULL,
-            last_name VARCHAR(50) NOT NULL,
-            phone VARCHAR(20),
-            role ENUM('customer', 'admin', 'staff') DEFAULT 'customer',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_login TIMESTAMP NULL
-        )
-    `;
-    
-    db.query(createUsersTableQuery, (err) => {
-        if (err) {
-            console.error('Error creating users table:', err);
-        } else {
-            console.log('✅ Users table ready');
-            
-            // Now check for admin user and create if needed
-            setTimeout(() => {
-                createDefaultAdminUser();
-            }, 1000); // Small delay to ensure table is fully created
-            
-            // Create other tables
-            createOtherRequiredTables();
-        }
-    });
-}
-
-// Create default admin user
-function createDefaultAdminUser() {
-    // First check if any admin user exists
-    const checkAdminQuery = `SELECT id FROM users WHERE role = 'admin' LIMIT 1`;
-    
-    db.query(checkAdminQuery, async (err, results) => {
-        if (err) {
-            console.error('Error checking for admin user:', err);
-            return;
-        }
-        
-        if (results && results.length === 0) {
-            try {
-                const adminPassword = 'admin123';
-                const hashedPassword = await bcrypt.hash(adminPassword, 10);
-                
-                const insertAdminQuery = `
-                    INSERT INTO users (email, password, first_name, last_name, role)
-                    VALUES (?, ?, ?, ?, ?)
-                `;
-                
-                db.query(insertAdminQuery, [
-                    'admin@spicesymphony.com', 
-                    hashedPassword, 
-                    'Admin', 
-                    'User', 
-                    'admin'
-                ], (err, result) => {
-                    if (err) {
-                        console.error('Error creating default admin:', err);
-                    } else {
-                        console.log('✅ Default admin user created successfully!');
-                        console.log('🎯 LOGIN CREDENTIALS:');
-                        console.log('📧 Email: admin@spicesymphony.com');
-                        console.log('🔑 Password: admin123');
-                        console.log('🌐 Admin Panel: https://restaurant-management-system-z09l.onrender.com/admin');
-                        
-                        // Create user profile for admin
-                        createUserProfile(result.insertId);
-                    }
-                });
-            } catch (error) {
-                console.error('Error hashing admin password:', error);
-            }
-        } else {
-            console.log('✅ Admin user already exists');
-            console.log('🌐 Admin Panel: https://restaurant-management-system-z09l.onrender.com/admin');
-        }
-    });
-}
-
-// Create user profile for a user
-function createUserProfile(userId) {
-    const createProfileQuery = `
-        INSERT IGNORE INTO user_profiles (user_id) VALUES (?)
-    `;
-    
-    db.query(createProfileQuery, [userId], (err) => {
-        if (err) {
-            console.error('Error creating user profile:', err);
-        } else {
-            console.log('✅ User profile created for admin');
-        }
-    });
-}
-
-// Create other required tables
-function createOtherRequiredTables() {
-    // User profiles table
-    const userProfilesQuery = `
-        CREATE TABLE IF NOT EXISTS user_profiles (
-            user_id INT PRIMARY KEY,
-            address TEXT,
-            city VARCHAR(50),
-            state VARCHAR(50),
-            postal_code VARCHAR(20),
-            preferred_payment_method VARCHAR(50),
-            dietary_preferences TEXT,
-            allergies TEXT,
-            favorite_dishes TEXT,
-            birthday DATE,
-            anniversary DATE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    `;
-    
-    db.query(userProfilesQuery, (err) => {
-        if (err) {
-            console.error('Error creating user_profiles table:', err);
-        } else {
-            console.log('✅ User profiles table ready');
-        }
-    });
-
-    // User sessions table
-    const userSessionsQuery = `
-        CREATE TABLE IF NOT EXISTS user_sessions (
-            id VARCHAR(255) PRIMARY KEY,
-            user_id INT NOT NULL,
-            expires TIMESTAMP NOT NULL,
-            data TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    `;
-    
-    db.query(userSessionsQuery, (err) => {
-        if (err) {
-            console.error('Error creating user_sessions table:', err);
-        } else {
-            console.log('✅ User sessions table ready');
-        }
-    });
-
-    // Restaurant tables
-    const restaurantTablesQuery = `
-        CREATE TABLE IF NOT EXISTS restaurant_tables (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            table_number VARCHAR(10) NOT NULL UNIQUE,
-            capacity INT NOT NULL,
-            section ENUM('indoor', 'outdoor') NOT NULL,
-            status ENUM('available', 'reserved', 'occupied', 'maintenance') DEFAULT 'available',
-            coordinates_x INT,
-            coordinates_y INT
-        )
-    `;
-    
-    db.query(restaurantTablesQuery, (err) => {
-        if (err) {
-            console.error('Error creating restaurant_tables table:', err);
-        } else {
-            console.log('✅ Restaurant tables table ready');
-            insertSampleDataIfNeeded();
-        }
-    });
-
-    // Table availability
-    const tableAvailabilityQuery = `
-        CREATE TABLE IF NOT EXISTS table_availability (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            table_id INT NOT NULL,
-            date DATE NOT NULL,
-            time_slot TIME NOT NULL,
-            is_available TINYINT(1) DEFAULT 1,
-            reservation_id INT,
-            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_table_datetime (table_id, date, time_slot)
-        )
-    `;
-    
-    db.query(tableAvailabilityQuery, (err) => {
-        if (err) {
-            console.error('Error creating table_availability table:', err);
-        } else {
-            console.log('✅ Table availability table ready');
-        }
-    });
-
-    // Reservations table
-    const reservationsQuery = `
-        CREATE TABLE IF NOT EXISTS reservations (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            date DATE NOT NULL,
-            time TIME NOT NULL,
-            guests INT NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            contact VARCHAR(20) NOT NULL,
-            email VARCHAR(100) NOT NULL,
-            seating ENUM('indoor', 'outdoor', 'no-preference') NOT NULL,
-            special_requests TEXT,
-            status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
-            confirmation_method ENUM('sms', 'email') NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            user_id INT,
-            table_id INT,
-            estimated_duration INT DEFAULT 120,
-            actual_arrival_time TIMESTAMP NULL,
-            actual_departure_time TIMESTAMP NULL,
-            total_spent DECIMAL(10,2) DEFAULT 0.00,
-            feedback_rating INT,
-            feedback_notes TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-            FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL
-        )
-    `;
-    
-    db.query(reservationsQuery, (err) => {
-        if (err) {
-            console.error('Error creating reservations table:', err);
-        } else {
-            console.log('✅ Reservations table ready');
-        }
-    });
-
-    // Menu items table (matching your schema)
-    const menuItemsQuery = `
-        CREATE TABLE IF NOT EXISTS menu_items (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            description TEXT NOT NULL,
-            price DECIMAL(10,2) NOT NULL,
-            category VARCHAR(100) NOT NULL,
-            subcategory VARCHAR(100),
-            image VARCHAR(255) NOT NULL,
-            calories INT,
-            ingredients TEXT,
-            allergens TEXT,
-            is_vegan TINYINT(1) DEFAULT 0,
-            is_vegetarian TINYINT(1) DEFAULT 1,
-            spice_level ENUM('mild', 'medium', 'spicy', 'very_spicy') DEFAULT 'medium',
-            preparation_time INT,
-            is_available TINYINT(1) DEFAULT 1
-        )
-    `;
-    
-    db.query(menuItemsQuery, (err) => {
-        if (err) {
-            console.error('Error creating menu_items table:', err);
-        } else {
-            console.log('✅ Menu items table ready');
-        }
-    });
-
-    // Orders table
-    const ordersQuery = `
-        CREATE TABLE IF NOT EXISTS orders (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            table_number VARCHAR(50) NOT NULL,
-            special_requests TEXT,
-            items TEXT NOT NULL,
-            total DECIMAL(10,2) NOT NULL,
-            order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            user_id INT,
-            payment_method VARCHAR(50),
-            payment_status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
-            order_type ENUM('dine_in', 'takeaway', 'delivery') DEFAULT 'dine_in',
-            estimated_ready_time TIMESTAMP NULL,
-            actual_ready_time TIMESTAMP NULL,
-            delivery_address TEXT,
-            order_status ENUM('pending', 'confirmed', 'preparing', 'ready', 'served', 'completed', 'cancelled') DEFAULT 'pending',
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-        )
-    `;
-    
-    db.query(ordersQuery, (err) => {
-        if (err) {
-            console.error('Error creating orders table:', err);
-        } else {
-            console.log('✅ Orders table ready');
-        }
-    });
-
-    // Products table
-    const productsQuery = `
-        CREATE TABLE IF NOT EXISTS products (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            category VARCHAR(50) NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            description TEXT,
-            price DECIMAL(10,2) NOT NULL,
-            image_url VARCHAR(255),
-            rating DECIMAL(3,2),
-            review_count INT,
-            badge VARCHAR(50),
-            stock_availability VARCHAR(50),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            sku VARCHAR(100),
-            category_id INT,
-            is_active TINYINT(1) DEFAULT 1,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-    `;
-    
-    db.query(productsQuery, (err) => {
-        if (err) {
-            console.error('Error creating products table:', err);
-        } else {
-            console.log('✅ Products table ready');
-        }
-    });
-
-    // Testimonials table
-    const testimonialsQuery = `
-        CREATE TABLE IF NOT EXISTS testimonials (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            role VARCHAR(255) NOT NULL,
-            rating INT NOT NULL,
-            review TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `;
-    
-    db.query(testimonialsQuery, (err) => {
-        if (err) {
-            console.error('Error creating testimonials table:', err);
-        } else {
-            console.log('✅ Testimonials table ready');
-        }
-    });
-
-    // Activity tracking table (simplified)
-    const activityTrackingQuery = `
-        CREATE TABLE IF NOT EXISTS user_activity_log (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT,
-            session_id VARCHAR(255),
-            activity_type VARCHAR(50) NOT NULL,
-            activity_details JSON,
-            ip_address VARCHAR(45),
-            user_agent TEXT,
-            page_url VARCHAR(500),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_user_id (user_id),
-            INDEX idx_session_id (session_id),
-            INDEX idx_activity_type (activity_type),
-            INDEX idx_created_at (created_at)
-        )
-    `;
-    
-    db.query(activityTrackingQuery, (err) => {
-        if (err) {
-            console.error('Error creating activity tracking table:', err);
-        } else {
-            console.log('✅ Activity tracking table ready');
-            console.log('🎉 Database initialization complete!');
-        }
-    });
-}
-
-// Insert sample data if tables are empty
-function insertSampleDataIfNeeded() {
-    // Check if restaurant_tables has data
-    db.query('SELECT COUNT(*) as count FROM restaurant_tables', (err, results) => {
-        if (err || !results || results[0].count > 0) return;
-        
-        console.log('📝 Inserting sample restaurant tables...');
-        const sampleTables = [
-            ['A1', 2, 'indoor', 'available', 100, 100],
-            ['A2', 2, 'indoor', 'available', 100, 200],
-            ['A3', 4, 'indoor', 'available', 100, 300],
-            ['B1', 4, 'indoor', 'available', 200, 100],
-            ['B2', 4, 'indoor', 'available', 200, 200],
-            ['C1', 2, 'outdoor', 'available', 300, 100],
-            ['C2', 4, 'outdoor', 'available', 300, 200]
-        ];
-        
-        const insertQuery = 'INSERT INTO restaurant_tables (table_number, capacity, section, status, coordinates_x, coordinates_y) VALUES ?';
-        db.query(insertQuery, [sampleTables], (err) => {
-            if (err) {
-                console.error('Error inserting sample tables:', err);
-            } else {
-                console.log('✅ Sample restaurant tables added');
-            }
-        });
-    });
-}
-
-// ==== MIDDLEWARE ====
-// Middleware to serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Middleware to parse JSON and URL-encoded form data
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-
-// Use cookie parser middleware
-app.use(cookieParser());
-
-// Set up session
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'spice_symphony_secret_key',
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 } // 24 hours
-}));
-
-// Middleware to capture IP address properly
-app.use((req, res, next) => {
-    req.ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || 
-             (req.connection.socket ? req.connection.socket.remoteAddress : null);
-    next();
-});
+// Call the force password reset after database initialization
+setTimeout(() => {
+    forcePasswordReset();
+}, 3000); // Wait 3 seconds after database initialization
 
 // ==== AUTHENTICATION MIDDLEWARE ====
 function authenticateToken(req, res, next) {
@@ -1413,11 +845,12 @@ app.get('/admin', authenticateAdmin, (req, res) => {
 });
 
 // ==== AUTHENTICATION API ENDPOINTS ====
-// Replace your existing registration endpoint with this improved version
 
-// User registration endpoint with better error handling
+// User registration endpoint
 app.post('/api/auth/register', async (req, res) => {
     try {
+        console.log('🔐 Registration attempt:', req.body);
+        
         const { email, password, firstName, lastName, phone } = req.body;
         
         // Validate required fields
@@ -1557,7 +990,177 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// Add debug endpoints for troubleshooting (you can remove these later)
+// SINGLE LOGIN ENDPOINT - Enhanced with detailed debugging
+app.post('/api/auth/login', (req, res) => {
+    try {
+        console.log('🔐 Login request body:', req.body);
+        console.log('🔐 Request headers:', req.headers);
+        
+        // Check if req.body exists
+        if (!req.body) {
+            console.error('❌ req.body is undefined');
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Request body is missing. Please ensure you are sending JSON data with Content-Type: application/json' 
+            });
+        }
+        
+        const { email, password } = req.body;
+        
+        console.log(`🔐 Login attempt for: ${email}`);
+        
+        if (!email || !password) {
+            console.log(`❌ Missing credentials for ${email}`);
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
+        
+        // Find user by email
+        const findUserQuery = 'SELECT * FROM users WHERE email = ?';
+        db.query(findUserQuery, [email], async (err, results) => {
+            if (err) {
+                console.error('❌ Database error during login:', err);
+                return res.status(500).json({ success: false, message: 'Login failed' });
+            }
+            
+            if (results.length === 0) {
+                console.log(`❌ User not found: ${email}`);
+                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            }
+            
+            const user = results[0];
+            console.log(`✅ User found: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
+            
+            try {
+                // Compare password
+                const passwordMatch = await bcrypt.compare(password, user.password);
+                console.log(`🔑 Password comparison result: ${passwordMatch}`);
+                console.log(`🔑 Provided password: "${password}"`);
+                console.log(`🔑 Expected password: "${user.role === 'admin' ? 'admin123' : 'user123'}"`);
+                
+                if (!passwordMatch) {
+                    console.log(`❌ Password mismatch for ${email}`);
+                    return res.status(401).json({ success: false, message: 'Invalid email or password' });
+                }
+                
+                console.log(`✅ Login successful for ${email}`);
+                
+                // Update last login time
+                db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+                
+                // Generate JWT token
+                const token = jwt.sign(
+                    { userId: user.id, email: user.email, role: user.role },
+                    process.env.JWT_SECRET || 'spice_symphony_jwt_secret',
+                    { expiresIn: '24h' }
+                );
+                
+                // Set cookie
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+                });
+                
+                // Create session
+                const sessionId = require('crypto').randomBytes(16).toString('hex');
+                const sessionExpiry = new Date(new Date().getTime() + 24 * 60 * 60 * 1000); // 24 hours
+                
+                db.query(
+                    'INSERT INTO user_sessions (id, user_id, expires, data) VALUES (?, ?, ?, ?)',
+                    [sessionId, user.id, sessionExpiry, JSON.stringify({ lastActive: new Date() })],
+                    (err) => {
+                        if (err) {
+                            console.error('Error creating session:', err);
+                        }
+                    }
+                );
+                
+                // Determine redirect URL based on role
+                const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
+                
+                console.log(`✅ Login completed for ${user.email}, redirecting to ${redirectTo}`);
+                res.json({
+                    success: true,
+                    message: 'Login successful',
+                    redirectTo: redirectTo,
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        firstName: user.first_name,
+                        lastName: user.last_name,
+                        role: user.role
+                    }
+                });
+            } catch (passwordError) {
+                console.error('❌ Password comparison error:', passwordError);
+                return res.status(500).json({ success: false, message: 'Login failed' });
+            }
+        });
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        res.status(500).json({ success: false, message: 'Login failed' });
+    }
+});
+
+// User logout endpoint
+app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('token');
+    res.json({ success: true, message: 'Logout successful', redirectTo: '/welcome' });
+});
+
+// Manual password reset endpoint for immediate fix
+app.post('/api/debug/force-reset-all-passwords', async (req, res) => {
+    try {
+        console.log('🔧 Manual password reset triggered');
+        
+        // Admin password
+        const adminPassword = 'admin123';
+        const adminHashedPassword = await bcrypt.hash(adminPassword, 10);
+        
+        // User password  
+        const userPassword = 'user123';
+        const userHashedPassword = await bcrypt.hash(userPassword, 10);
+        
+        // Update admin
+        await new Promise((resolve, reject) => {
+            db.query(
+                'UPDATE users SET password = ? WHERE role = "admin" OR email = "admin@spicesymphony.com"',
+                [adminHashedPassword],
+                (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                }
+            );
+        });
+        
+        // Update customers
+        await new Promise((resolve, reject) => {
+            db.query(
+                'UPDATE users SET password = ? WHERE role = "customer"',
+                [userHashedPassword],
+                (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                }
+            );
+        });
+        
+        res.json({
+            success: true,
+            message: 'All passwords reset successfully',
+            credentials: {
+                admin: { email: 'admin@spicesymphony.com', password: 'admin123' },
+                customers: { password: 'user123' }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error in manual password reset:', error);
+        res.status(500).json({ success: false, message: 'Password reset failed' });
+    }
+});
+
+// Add debug endpoints for troubleshooting
 app.get('/api/debug/users', (req, res) => {
     const getUsersQuery = 'SELECT id, email, first_name, last_name, role, created_at FROM users ORDER BY id';
     
