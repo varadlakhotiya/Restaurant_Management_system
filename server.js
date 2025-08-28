@@ -11,9 +11,8 @@ const session = require('express-session');
 const app = express();
 const fs = require('fs');
 
-// ENHANCED DATABASE CONNECTION WITH CONNECTION POOLING
-const db = mysql.createPool({
-    connectionLimit: 10,
+// Simple and working mysql2 configuration
+const db = mysql.createConnection({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
     user: process.env.DB_USER,
@@ -23,15 +22,8 @@ const db = mysql.createPool({
         rejectUnauthorized: false
     } : false,
     charset: 'utf8mb4',
-    multipleStatements: true,
-    acquireTimeout: 60000,
-    timeout: 60000,
-    reconnect: true,
-    idleTimeout: 300000,
-    // Connection pool specific options
-    queueLimit: 0,
-    // Handle disconnects
-    handleDisconnects: true
+    connectTimeout: 60000,
+    multipleStatements: true
 });
 
 // Test the connection
@@ -111,102 +103,26 @@ app.use('/api/auth/login', (req, res, next) => {
 function initializeDatabase() {
     console.log('🔧 Initializing database...');
     
-    return new Promise((resolve, reject) => {
-        // Test the connection first
-        db.getConnection((err, connection) => {
-            if (err) {
-                console.error('❌ Error getting database connection:', err);
-                console.error('🔍 Database Config Check:');
-                console.error('   - DB_HOST:', process.env.DB_HOST ? '✅ Set' : '❌ Missing');
-                console.error('   - DB_PORT:', process.env.DB_PORT ? '✅ Set' : '❌ Missing');
-                console.error('   - DB_USER:', process.env.DB_USER ? '✅ Set' : '❌ Missing');
-                console.error('   - DB_PASSWORD:', process.env.DB_PASSWORD ? '✅ Set' : '❌ Missing');
-                console.error('   - DB_NAME:', process.env.DB_NAME ? '✅ Set' : '❌ Missing');
-                console.error('   - DB_SSL:', process.env.DB_SSL ? '✅ Set' : '❌ Missing');
-                
-                // Don't exit in production, try to continue
-                if (process.env.NODE_ENV !== 'production') {
-                    process.exit(1);
-                } else {
-                    reject(err);
-                    return;
-                }
-            }
-
-            console.log('✅ MySQL connected successfully!');
-            console.log(`📊 Connected to database: ${process.env.DB_NAME} on ${process.env.DB_HOST}:${process.env.DB_PORT}`);
+    // First, create the spice_symphony database if it doesn't exist
+    db.query('CREATE DATABASE IF NOT EXISTS spice_symphony', (err) => {
+        if (err) {
+            console.error('Error creating database:', err);
+            console.log('📝 Continuing with current database...');
+            ensureTablesExist();
+        } else {
+            console.log('✅ Database spice_symphony ensured');
             
-            // Release the connection back to the pool
-            connection.release();
-            
-            // Create database and tables
-            ensureDatabaseExists()
-                .then(() => ensureTablesExist())
-                .then(() => {
-                    console.log('🎉 Database initialization complete!');
-                    setTimeout(() => {
-                        debugAndFixUsers();
-                    }, 2000);
-                    resolve();
-                })
-                .catch(reject);
-        });
-    });
-}
-
-// Enhanced database creation
-function ensureDatabaseExists() {
-    return new Promise((resolve, reject) => {
-        db.query('CREATE DATABASE IF NOT EXISTS spice_symphony', (err) => {
-            if (err) {
-                console.error('Error creating database:', err);
-                console.log('🔍 Continuing with current database...');
-                resolve(); // Continue even if database creation fails
-            } else {
-                console.log('✅ Database spice_symphony ensured');
-                
-                // Switch to spice_symphony database
-                db.query('USE spice_symphony', (err) => {
-                    if (err) {
-                        console.error('Error switching to spice_symphony database:', err);
-                        console.log('🔍 Continuing with current database...');
-                    } else {
-                        console.log('✅ Switched to spice_symphony database');
-                    }
-                    resolve();
-                });
-            }
-        });
-    });
-}
-
-// Wrapper function for database queries with automatic retry
-function executeQuery(query, params = []) {
-    return new Promise((resolve, reject) => {
-        const attemptQuery = (retryCount = 0) => {
-            db.query(query, params, (err, results) => {
+            // Switch to spice_symphony database
+            db.query('USE spice_symphony', (err) => {
                 if (err) {
-                    console.error('Database query error:', err);
-                    
-                    // Check if it's a connection error and we haven't exceeded retry limit
-                    if ((err.code === 'PROTOCOL_CONNECTION_LOST' || 
-                         err.code === 'ECONNRESET' || 
-                         err.code === 'ER_SERVER_SHUTDOWN' ||
-                         err.fatal) && retryCount < 3) {
-                        
-                        console.log(`🔄 Retrying query (attempt ${retryCount + 1}/3)...`);
-                        setTimeout(() => attemptQuery(retryCount + 1), 1000 * (retryCount + 1));
-                        return;
-                    }
-                    
-                    reject(err);
+                    console.error('Error switching to spice_symphony database:', err);
+                    console.log('📝 Continuing with current database...');
                 } else {
-                    resolve(results);
+                    console.log('✅ Switched to spice_symphony database');
                 }
+                ensureTablesExist();
             });
-        };
-        
-        attemptQuery();
+        }
     });
 }
 
@@ -1075,7 +991,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // SINGLE LOGIN ENDPOINT - Enhanced with detailed debugging
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', (req, res) => {
     try {
         console.log('🔐 Login request body:', req.body);
         console.log('🔐 Request headers:', req.headers);
@@ -1098,9 +1014,13 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email and password are required' });
         }
         
-        try {
-            // Use the enhanced query function
-            const results = await executeQuery('SELECT * FROM users WHERE email = ?', [email]);
+        // Find user by email
+        const findUserQuery = 'SELECT * FROM users WHERE email = ?';
+        db.query(findUserQuery, [email], async (err, results) => {
+            if (err) {
+                console.error('❌ Database error during login:', err);
+                return res.status(500).json({ success: false, message: 'Login failed' });
+            }
             
             if (results.length === 0) {
                 console.log(`❌ User not found: ${email}`);
@@ -1110,75 +1030,75 @@ app.post('/api/auth/login', async (req, res) => {
             const user = results[0];
             console.log(`✅ User found: ${user.email} (ID: ${user.id}, Role: ${user.role})`);
             
-            // Compare password
-            const passwordMatch = await bcrypt.compare(password, user.password);
-            console.log(`🔑 Password comparison result: ${passwordMatch}`);
-            
-            if (!passwordMatch) {
-                console.log(`❌ Password mismatch for ${email}`);
-                return res.status(401).json({ success: false, message: 'Invalid email or password' });
-            }
-            
-            console.log(`✅ Login successful for ${email}`);
-            
-            // Update last login time (fire and forget)
-            executeQuery('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id])
-                .catch(err => console.error('Error updating last login:', err));
-            
-            // Generate JWT token
-            const token = jwt.sign(
-                { userId: user.id, email: user.email, role: user.role },
-                process.env.JWT_SECRET || 'spice_symphony_jwt_secret',
-                { expiresIn: '24h' }
-            );
-            
-            // Set cookie
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                maxAge: 24 * 60 * 60 * 1000 // 24 hours
-            });
-            
-            // Create session (fire and forget)
-            const sessionId = require('crypto').randomBytes(16).toString('hex');
-            const sessionExpiry = new Date(new Date().getTime() + 24 * 60 * 60 * 1000); // 24 hours
-            
-            executeQuery(
-                'INSERT INTO user_sessions (id, user_id, expires, data) VALUES (?, ?, ?, ?)',
-                [sessionId, user.id, sessionExpiry, JSON.stringify({ lastActive: new Date() })]
-            ).catch(err => console.error('Error creating session:', err));
-            
-            // Determine redirect URL based on role
-            const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
-            
-            console.log(`✅ Login completed for ${user.email}, redirecting to ${redirectTo}`);
-            res.json({
-                success: true,
-                message: 'Login successful',
-                redirectTo: redirectTo,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.first_name,
-                    lastName: user.last_name,
-                    role: user.role
+            try {
+                // Compare password
+                const passwordMatch = await bcrypt.compare(password, user.password);
+                console.log(`🔑 Password comparison result: ${passwordMatch}`);
+                console.log(`🔑 Provided password: "${password}"`);
+                console.log(`🔑 Expected password: "${user.role === 'admin' ? 'admin123' : 'user123'}"`);
+                
+                if (!passwordMatch) {
+                    console.log(`❌ Password mismatch for ${email}`);
+                    return res.status(401).json({ success: false, message: 'Invalid email or password' });
                 }
-            });
-            
-        } catch (dbError) {
-            console.error('❌ Database error during login:', dbError);
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Login failed due to server error. Please try again.' 
-            });
-        }
-        
+                
+                console.log(`✅ Login successful for ${email}`);
+                
+                // Update last login time
+                db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+                
+                // Generate JWT token
+                const token = jwt.sign(
+                    { userId: user.id, email: user.email, role: user.role },
+                    process.env.JWT_SECRET || 'spice_symphony_jwt_secret',
+                    { expiresIn: '24h' }
+                );
+                
+                // Set cookie
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+                });
+                
+                // Create session
+                const sessionId = require('crypto').randomBytes(16).toString('hex');
+                const sessionExpiry = new Date(new Date().getTime() + 24 * 60 * 60 * 1000); // 24 hours
+                
+                db.query(
+                    'INSERT INTO user_sessions (id, user_id, expires, data) VALUES (?, ?, ?, ?)',
+                    [sessionId, user.id, sessionExpiry, JSON.stringify({ lastActive: new Date() })],
+                    (err) => {
+                        if (err) {
+                            console.error('Error creating session:', err);
+                        }
+                    }
+                );
+                
+                // Determine redirect URL based on role
+                const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
+                
+                console.log(`✅ Login completed for ${user.email}, redirecting to ${redirectTo}`);
+                res.json({
+                    success: true,
+                    message: 'Login successful',
+                    redirectTo: redirectTo,
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        firstName: user.first_name,
+                        lastName: user.last_name,
+                        role: user.role
+                    }
+                });
+            } catch (passwordError) {
+                console.error('❌ Password comparison error:', passwordError);
+                return res.status(500).json({ success: false, message: 'Login failed' });
+            }
+        });
     } catch (error) {
         console.error('❌ Login error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Login failed due to server error. Please try again.' 
-        });
+        res.status(500).json({ success: false, message: 'Login failed' });
     }
 });
 
@@ -2667,7 +2587,6 @@ app.post('/api/admin/users', authenticateAdmin, async (req, res) => {
                 return res.status(500).json({ success: false, message: 'Failed to add user' });
             }
             
-            
             if (results.length > 0) {
                 return res.status(400).json({ success: false, message: 'Email already exists' });
             }
@@ -2860,8 +2779,7 @@ app.post('/api/admin/settings/general', authenticateAdmin, (req, res) => {
 
 // ==== ENHANCED ACTIVITY TRACKING ====
 // Track user activity endpoint with better error handling
-// Enhanced activity tracking with better error handling
-app.post('/api/track-activity', async (req, res) => {
+app.post('/api/track-activity', (req, res) => {
     const { activityType, sessionId, details } = req.body;
     const userId = req.user ? req.user.userId : null;
     const ip = req.ip || req.connection.remoteAddress;
@@ -2890,69 +2808,26 @@ app.post('/api/track-activity', async (req, res) => {
         detailsJson = JSON.stringify({ error: 'Invalid details format' });
     }
     
-    try {
-        await executeQuery(
-            'INSERT INTO user_activity_log (user_id, session_id, activity_type, activity_details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?)',
-            [userId, sessionId, truncatedActivityType, detailsJson, ip, userAgent]
-        );
-        
-        res.json({ success: true, message: 'Activity tracked successfully' });
-        
-    } catch (error) {
-        // Log error but don't fail the request (activity tracking should be non-blocking)
-        console.error('Error tracking activity:', {
-            error: error.message,
-            activityType: truncatedActivityType,
-            userId: userId,
-            sessionId: sessionId
-        });
-        
-        // Still return success to avoid breaking the frontend
-        res.json({ success: true, message: 'Activity logged (with warnings)' });
-    }
-});
-
-// Add connection pool monitoring
-setInterval(() => {
-    if (db.pool) {
-        const stats = {
-            totalConnections: db.pool._allConnections ? db.pool._allConnections.length : 0,
-            freeConnections: db.pool._freeConnections ? db.pool._freeConnections.length : 0,
-            acquiringConnections: db.pool._acquiringConnections ? db.pool._acquiringConnections.length : 0
-        };
-        
-        if (stats.totalConnections > 0) {
-            console.log('📊 DB Pool Stats:', stats);
+    const query = `
+        INSERT INTO user_activity_log (user_id, session_id, activity_type, activity_details, ip_address, user_agent)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.query(query, [userId, sessionId, truncatedActivityType, detailsJson, ip, userAgent], (err, result) => {
+        if (err) {
+            // Log error but don't fail the request (activity tracking should be non-blocking)
+            console.error('Error tracking activity:', {
+                error: err.message,
+                activityType: truncatedActivityType,
+                userId: userId,
+                sessionId: sessionId
+            });
+            
+            // Still return success to avoid breaking the frontend
+            return res.json({ success: true, message: 'Activity logged (with warnings)' });
         }
-    }
-}, 60000); // Log every minute
-
-// Initialize database on startup
-initializeDatabase()
-    .then(() => {
-        console.log('✅ Database initialization successful');
-    })
-    .catch((error) => {
-        console.error('❌ Database initialization failed:', error);
-        if (process.env.NODE_ENV !== 'production') {
-            process.exit(1);
-        }
-    });
-
-// Handle process termination gracefully
-process.on('SIGINT', () => {
-    console.log('🛑 Received SIGINT, closing database connections...');
-    db.end(() => {
-        console.log('✅ Database connections closed');
-        process.exit(0);
-    });
-});
-
-process.on('SIGTERM', () => {
-    console.log('🛑 Received SIGTERM, closing database connections...');
-    db.end(() => {
-        console.log('✅ Database connections closed');
-        process.exit(0);
+        
+        res.json({ success: true, activityId: result.insertId });
     });
 });
 
@@ -2986,287 +2861,3 @@ app.listen(port, async () => {
         console.log(`⚠️  Could not open browser automatically. Please visit: http://localhost:${port}/welcome`);
     }
 });
-
-
-// Add these helper functions to your server.js
-
-// Enhanced table creation function
-async function ensureTablesExist() {
-    console.log('🔧 Ensuring database tables exist...');
-    
-    const tables = [
-        {
-            name: 'users',
-            query: `
-                CREATE TABLE IF NOT EXISTS users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    email VARCHAR(100) NOT NULL UNIQUE,
-                    password VARCHAR(255) NOT NULL,
-                    first_name VARCHAR(50) NOT NULL,
-                    last_name VARCHAR(50) NOT NULL,
-                    phone VARCHAR(20),
-                    role ENUM('customer', 'admin', 'staff') DEFAULT 'customer',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    last_login TIMESTAMP NULL
-                )
-            `
-        },
-        {
-            name: 'user_profiles',
-            query: `
-                CREATE TABLE IF NOT EXISTS user_profiles (
-                    user_id INT PRIMARY KEY,
-                    address TEXT,
-                    city VARCHAR(50),
-                    state VARCHAR(50),
-                    postal_code VARCHAR(20),
-                    preferred_payment_method VARCHAR(50),
-                    dietary_preferences TEXT,
-                    allergies TEXT,
-                    favorite_dishes TEXT,
-                    birthday DATE,
-                    anniversary DATE,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            `
-        },
-        {
-            name: 'reservations',
-            query: `
-                CREATE TABLE IF NOT EXISTS reservations (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    date DATE NOT NULL,
-                    time TIME NOT NULL,
-                    guests INT NOT NULL,
-                    name VARCHAR(100) NOT NULL,
-                    contact VARCHAR(20) NOT NULL,
-                    email VARCHAR(100) NOT NULL,
-                    seating ENUM('indoor', 'outdoor', 'no-preference') NOT NULL,
-                    special_requests TEXT,
-                    status ENUM('pending', 'confirmed', 'cancelled', 'completed') DEFAULT 'pending',
-                    confirmation_method ENUM('sms', 'email') NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    user_id INT,
-                    table_id INT,
-                    estimated_duration INT DEFAULT 120,
-                    actual_arrival_time TIMESTAMP NULL,
-                    actual_departure_time TIMESTAMP NULL,
-                    total_spent DECIMAL(10,2) DEFAULT 0.00,
-                    feedback_rating INT,
-                    feedback_notes TEXT,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-                )
-            `
-        },
-        {
-            name: 'orders',
-            query: `
-                CREATE TABLE IF NOT EXISTS orders (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL,
-                    table_number VARCHAR(50) NOT NULL,
-                    special_requests TEXT,
-                    items TEXT NOT NULL,
-                    total DECIMAL(10,2) NOT NULL,
-                    order_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    user_id INT,
-                    payment_method VARCHAR(50),
-                    payment_status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
-                    order_type ENUM('dine_in', 'takeaway', 'delivery') DEFAULT 'dine_in',
-                    estimated_ready_time TIMESTAMP NULL,
-                    actual_ready_time TIMESTAMP NULL,
-                    delivery_address TEXT,
-                    order_status ENUM('pending', 'confirmed', 'preparing', 'ready', 'served', 'completed', 'cancelled') DEFAULT 'pending',
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-                )
-            `
-        },
-        {
-            name: 'user_activity_log',
-            query: `
-                CREATE TABLE IF NOT EXISTS user_activity_log (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    user_id INT,
-                    session_id VARCHAR(255),
-                    activity_type VARCHAR(50) NOT NULL,
-                    activity_details JSON,
-                    ip_address VARCHAR(45),
-                    user_agent TEXT,
-                    page_url VARCHAR(500),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_user_id (user_id),
-                    INDEX idx_session_id (session_id),
-                    INDEX idx_activity_type (activity_type),
-                    INDEX idx_created_at (created_at)
-                )
-            `
-        }
-    ];
-
-    try {
-        for (const table of tables) {
-            await executeQuery(table.query);
-            console.log(`✅ ${table.name} table ready`);
-        }
-        console.log('🎉 All database tables created successfully!');
-    } catch (error) {
-        console.error('❌ Error creating tables:', error);
-        throw error;
-    }
-}
-
-// Enhanced user creation functions
-async function debugAndFixUsers() {
-    console.log('🔍 DEBUGGING USER DATABASE...');
-    
-    try {
-        // First, let's see what users exist
-        const users = await executeQuery('SELECT id, email, first_name, last_name, role, created_at FROM users ORDER BY id');
-        
-        console.log('👥 EXISTING USERS IN DATABASE:');
-        console.log('=====================================');
-        
-        if (users.length === 0) {
-            console.log('❌ No users found in database');
-            await createFreshAdminUser();
-        } else {
-            users.forEach(user => {
-                console.log(`ID: ${user.id} | Email: ${user.email} | Name: ${user.first_name} ${user.last_name} | Role: ${user.role}`);
-            });
-            
-            console.log('=====================================');
-            
-            // Check if we have an admin user
-            const hasAdmin = users.some(user => user.role === 'admin');
-            
-            if (!hasAdmin) {
-                console.log('⚠️ No admin user found. Creating one...');
-                await createFreshAdminUser();
-            } else {
-                console.log('✅ Admin user exists');
-                // Reset admin password
-                await resetAdminPassword();
-            }
-            
-            // Set default passwords for existing users
-            await setDefaultPasswordsForExistingUsers();
-        }
-    } catch (error) {
-        console.error('❌ Error in debugAndFixUsers:', error);
-    }
-}
-
-// Create a fresh admin user
-async function createFreshAdminUser() {
-    try {
-        const adminPassword = 'admin123';
-        const hashedPassword = await bcrypt.hash(adminPassword, 10);
-        
-        await executeQuery(
-            `INSERT INTO users (email, password, first_name, last_name, role)
-             VALUES (?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE 
-             password = VALUES(password),
-             role = VALUES(role)`,
-            ['admin@spicesymphony.com', hashedPassword, 'Admin', 'User', 'admin']
-        );
-
-        console.log('✅ Admin user created/updated successfully!');
-        console.log('🎯 ADMIN LOGIN CREDENTIALS:');
-        console.log('📧 Email: admin@spicesymphony.com');
-        console.log('🔑 Password: admin123');
-        
-        // Ensure user profile exists
-        await ensureUserProfile('admin@spicesymphony.com');
-        
-    } catch (error) {
-        console.error('❌ Error creating admin user:', error);
-    }
-}
-
-// Reset admin password
-async function resetAdminPassword() {
-    try {
-        const adminPassword = 'admin123';
-        const hashedPassword = await bcrypt.hash(adminPassword, 10);
-        
-        await executeQuery(
-            `UPDATE users 
-             SET password = ?, role = 'admin'
-             WHERE email = 'admin@spicesymphony.com' OR role = 'admin'`,
-            [hashedPassword]
-        );
-
-        console.log('✅ Admin password reset successfully!');
-        console.log('🎯 ADMIN LOGIN CREDENTIALS:');
-        console.log('📧 Email: admin@spicesymphony.com');
-        console.log('🔑 Password: admin123');
-        
-    } catch (error) {
-        console.error('❌ Error resetting admin password:', error);
-    }
-}
-
-// Set default passwords for existing users
-async function setDefaultPasswordsForExistingUsers() {
-    try {
-        const defaultPassword = 'user123';
-        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-        
-        const result = await executeQuery(
-            `UPDATE users SET password = ? WHERE role != 'admin'`,
-            [hashedPassword]
-        );
-
-        console.log(`✅ Updated passwords for ${result.affectedRows} existing users`);
-        console.log('🔑 Default password for existing users: user123');
-        
-        // List all users with their login info
-        await listAllUserCredentials();
-        
-    } catch (error) {
-        console.error('❌ Error setting default passwords:', error);
-    }
-}
-
-// List all user credentials
-async function listAllUserCredentials() {
-    try {
-        const users = await executeQuery(
-            'SELECT id, email, first_name, last_name, role FROM users ORDER BY role DESC, id'
-        );
-        
-        console.log('');
-        console.log('🎯 UPDATED USER LOGIN CREDENTIALS:');
-        console.log('=====================================');
-        
-        users.forEach(user => {
-            const password = user.role === 'admin' ? 'admin123' : 'user123';
-            console.log(`👤 ${user.first_name} ${user.last_name} (${user.role})`);
-            console.log(`   📧 Email: ${user.email}`);
-            console.log(`   🔑 Password: ${password}`);
-            console.log('   ---');
-        });
-        
-        console.log('=====================================');
-        console.log('🌐 Login URL: https://your-app-url.com/login');
-        console.log('');
-        
-    } catch (error) {
-        console.error('❌ Error listing user credentials:', error);
-    }
-}
-
-// Ensure user profile exists for an email
-async function ensureUserProfile(email) {
-    try {
-        const results = await executeQuery('SELECT id FROM users WHERE email = ?', [email]);
-        
-        if (results.length > 0) {
-            const userId = results[0].id;
-            await executeQuery('INSERT IGNORE INTO user_profiles (user_id) VALUES (?)', [userId]);
-        }
-    } catch (error) {
-        console.error('❌ Error ensuring user profile:', error);
-    }
-}
